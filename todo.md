@@ -1,3 +1,3 @@
 # idea
- - make the index.hrml more beautifull: the name, the list has no margin, the header is too big, library in the centre shoud be more focus, keep the style(font, color), fix the homepage :"panels" with the twinkling red dot -> remove the dot, "Your Library" -> "Welcome to my Library", panels -> "Vault Library"
+ - make the index.html more beautifull: the name, the list has no margin, the header is too big, library in the centre shoud be more focus, keep the style(font, color), fix the homepage :"panels" with the twinkling red dot -> remove the dot, "Your Library" -> "Welcome to my Library", panels -> "Vault Library"
  - db for the comics: title, author, description, cover image, tags, date added, date read

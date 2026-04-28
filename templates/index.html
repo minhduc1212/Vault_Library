@@ -100,6 +100,18 @@ body  {
   letter-spacing: .06em;
 }
 
+/* settings button */
+.site-header__settings {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--muted); cursor: pointer;
+  transition: all .15s;
+  margin-left: 6px;
+}
+.site-header__settings:hover { border-color: var(--ink); color: var(--ink); }
+.site-header__settings svg { display: block; }
+
 /* ─────────────────────────────────────────────────────────
    HERO  — balanced two-column block
 ───────────────────────────────────────────────────────── */
@@ -400,6 +412,69 @@ body  {
 }
 
 /* ─────────────────────────────────────────────────────────
+   MODAL
+───────────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(17,16,16,.35);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden;
+  transition: opacity .22s ease, visibility .22s;
+}
+.modal-backdrop.open { opacity: 1; visibility: visible; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: var(--s4);
+  max-width: 440px; width: 90%;
+  display: flex; flex-direction: column; gap: var(--s3);
+  transform: translateY(8px);
+  transition: transform .22s ease;
+}
+.modal-backdrop.open .modal { transform: translateY(0); }
+
+.modal__title {
+  font-size: 15px; font-weight: 800; letter-spacing: -.3px;
+  display: flex; align-items: center; gap: var(--s1);
+}
+.modal__desc {
+  font-family: 'Syne Mono', monospace; font-size: 10px;
+  color: var(--muted); letter-spacing: .04em; line-height: 1.7;
+}
+.modal__input {
+  width: 100%; padding: 10px 14px;
+  font-family: 'Syne Mono', monospace; font-size: 11px;
+  border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--bg); color: var(--ink);
+  letter-spacing: .04em; outline: none;
+  transition: border-color .15s;
+}
+.modal__input:focus { border-color: var(--ink); }
+.modal__error {
+  font-family: 'Syne Mono', monospace; font-size: 10px;
+  color: var(--red); letter-spacing: .04em; display: none;
+}
+.modal__actions {
+  display: flex; gap: var(--s1); justify-content: flex-end; margin-top: 4px;
+}
+.modal__btn {
+  padding: 8px 20px; border-radius: 100px;
+  font-family: 'Syne Mono', monospace; font-size: 10px;
+  letter-spacing: .08em; text-transform: uppercase;
+  cursor: pointer; transition: all .15s;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+}
+.modal__btn:hover { border-color: var(--ink); color: var(--ink); }
+.modal__btn--primary {
+  background: var(--ink); color: var(--bg); border-color: var(--ink);
+}
+.modal__btn--primary:hover { background: var(--red); border-color: var(--red); color: #fff; }
+
+/* ─────────────────────────────────────────────────────────
    RESPONSIVE
 ───────────────────────────────────────────────────────── */
 @media (max-width: 680px) {
@@ -436,6 +511,12 @@ body  {
   <div class="site-header__inner">
     <a class="site-header__logo" href="/">Vault Library</a>
     <span class="site-header__tag">Comic Reader</span>
+    <button class="site-header__settings" id="btn-settings" aria-label="Change comics folder" title="Comics folder settings">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+    </button>
   </div>
 </header>
 
@@ -484,6 +565,30 @@ body  {
     <span>Personal Comic Reader</span>
   </div>
 </footer>
+
+<!-- ╔══════════════════════════════════════════════
+     MODAL — Comics folder settings
+═══════════════════════════════════════════════╗ -->
+<div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
+  <div class="modal">
+    <div class="modal__title" id="modal-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+      Comics folder
+    </div>
+    <p class="modal__desc">
+      Enter the full path to your comics directory. One-shots go directly inside, series use chapter sub-folders.
+    </p>
+    <input class="modal__input" id="modal-input" type="text" spellcheck="false" placeholder="e.g. D:\Comics"/>
+    <p class="modal__error" id="modal-error"></p>
+    <div class="modal__actions">
+      <button class="modal__btn" id="modal-cancel">Cancel</button>
+      <button class="modal__btn modal__btn--primary" id="modal-save">Save & reload</button>
+    </div>
+  </div>
+</div>
 
 <!-- ╔══════════════════════════════════════════════
      JAVASCRIPT
@@ -628,6 +733,79 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+/* ── MODAL — comics folder settings ───────────── */
+const backdrop = document.getElementById('modal-backdrop');
+const input    = document.getElementById('modal-input');
+const errorEl  = document.getElementById('modal-error');
+const saveBtn  = document.getElementById('modal-save');
+
+function openModal() {
+  fetch('/api/config').then(r => r.json()).then(cfg => {
+    input.value = cfg.comics_dir || '';
+  }).catch(() => {});
+  backdrop.classList.add('open');
+  backdrop.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => input.focus(), 120);
+}
+
+function closeModal() {
+  backdrop.classList.remove('open');
+  backdrop.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  errorEl.style.display = 'none';
+  errorEl.textContent = '';
+}
+
+document.getElementById('btn-settings').onclick = openModal;
+document.getElementById('modal-cancel').onclick = closeModal;
+
+backdrop.addEventListener('click', e => {
+  if (e.target === backdrop) closeModal();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && backdrop.classList.contains('open')) closeModal();
+});
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveBtn.click();
+});
+
+saveBtn.addEventListener('click', async () => {
+  const val = input.value.trim();
+  if (!val) {
+    errorEl.textContent = 'Please enter a path.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  saveBtn.textContent = 'Saving…';
+  saveBtn.disabled = true;
+  errorEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comics_dir: val })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Failed to save.';
+      errorEl.style.display = 'block';
+    } else {
+      closeModal();
+      loadLibrary();
+    }
+  } catch (err) {
+    errorEl.textContent = 'Network error. Check the server.';
+    errorEl.style.display = 'block';
+  } finally {
+    saveBtn.textContent = 'Save & reload';
+    saveBtn.disabled = false;
+  }
+});
 
 loadLibrary();
 </script>

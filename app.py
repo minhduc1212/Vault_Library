@@ -5,8 +5,24 @@ from flask import Flask, render_template, send_file, jsonify, request, abort
 
 app = Flask(__name__)
 
+CONFIG_FILE = Path(__file__).parent / ".comics_config.json"
+
+
+def _load_config() -> dict:
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def _save_config(cfg: dict) -> None:
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(cfg, f, indent=2)
+
+
+_config = _load_config()
 # ── Configure this to your comics root folder ──────────────────────────────
-COMICS_DIR = Path(os.environ.get("COMICS_DIR", "./comics"))
+COMICS_DIR = Path(_config.get("comics_dir") or os.environ.get("COMICS_DIR") or "./comics").expanduser().resolve()
 # ───────────────────────────────────────────────────────────────────────────
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".bmp"}
@@ -123,6 +139,28 @@ def reader(read_path):
 @app.route("/series/<path:series_path>")
 def series(series_path):
     return render_template("series.html", series_path=series_path)
+
+
+@app.route("/api/config", methods=["GET"])
+def api_get_config():
+    return jsonify({"comics_dir": str(COMICS_DIR.resolve())})
+
+
+@app.route("/api/config", methods=["POST"])
+def api_set_config():
+    global COMICS_DIR
+    data = request.get_json(silent=True) or {}
+    new_path = data.get("comics_dir", "").strip()
+    if not new_path:
+        return jsonify({"error": "No path provided"}), 400
+    p = Path(new_path).expanduser().resolve()
+    if not p.exists():
+        return jsonify({"error": "Path does not exist"}), 400
+    if not p.is_dir():
+        return jsonify({"error": "Path is not a directory"}), 400
+    COMICS_DIR = p
+    _save_config({"comics_dir": str(p)})
+    return jsonify({"comics_dir": str(p)})
 
 
 if __name__ == "__main__":
