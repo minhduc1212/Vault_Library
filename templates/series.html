@@ -3,185 +3,512 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PANELS — Series</title>
+<title>Vault Library — Series</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
 <style>
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --bg:#F0EBE1;--ink:#111010;--paper:#FAFAF7;
-    --red:#E8281C;--muted:#9E9890;--border:#D5CFC4;--gap:24px;
-  }
-  body{background:var(--bg);color:var(--ink);font-family:'Syne',sans-serif;min-height:100vh;}
 
-  header{
-    position:sticky;top:0;z-index:100;
-    display:flex;align-items:center;gap:16px;
-    padding:0 var(--gap);height:56px;
-    background:var(--bg);border-bottom:1.5px solid var(--ink);
-  }
-  .back{
-    display:flex;align-items:center;gap:8px;
-    text-decoration:none;color:var(--ink);
-    font-family:'Syne Mono',monospace;font-size:12px;letter-spacing:.05em;
-    padding:6px 12px;border:1.5px solid var(--border);border-radius:100px;
-    transition:all .15s;
-  }
-  .back:hover{background:var(--ink);color:var(--bg);border-color:var(--ink);}
-  .logo{font-size:18px;font-weight:800;letter-spacing:-.5px;text-decoration:none;color:var(--ink);margin-left:auto;}
+/* ─────────────────────────────────────────────────────────
+   TOKENS
+───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .series-hero{
-    padding:56px var(--gap) 40px;
-    border-bottom:1.5px solid var(--border);
-    display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:end;
-  }
-  .series-cover{
-    width:120px;aspect-ratio:2/3;overflow:hidden;
-    border:1.5px solid var(--ink);background:var(--border);
-    flex-shrink:0;
-  }
-  .series-cover img{width:100%;height:100%;object-fit:cover;display:block;}
-  .series-info{}
-  .series-eyebrow{
-    font-family:'Syne Mono',monospace;font-size:10px;letter-spacing:.15em;
-    text-transform:uppercase;color:var(--red);margin-bottom:10px;
-  }
-  .series-title{
-    font-size:clamp(28px,5vw,56px);font-weight:800;
-    letter-spacing:-2px;line-height:.95;margin-bottom:16px;
-  }
-  .series-stats{
-    display:flex;gap:24px;
-    font-family:'Syne Mono',monospace;font-size:11px;color:var(--muted);
-  }
-  .stat strong{display:block;color:var(--ink);font-size:20px;font-weight:700;font-family:'Syne',sans-serif;}
+:root {
+  --bg       : #EEEAE0;
+  --surface  : #F5F2EB;
+  --ink      : #1A1A1A;
+  --ink-2    : #3A3835;
+  --muted    : #6B6560;
+  --red      : #D62B1F;
+  --border   : #C8C2B6;
+  --border-lt: #DDDAD2;
+  --max      : 1100px;
+  --gx       : 48px;
+  --r        : 6px;
+}
 
-  .chapter-header{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:20px var(--gap);
-    border-bottom:1.5px solid var(--border);
-  }
-  .chapter-header h2{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
-  .read-all{
-    font-family:'Syne Mono',monospace;font-size:11px;
-    padding:6px 14px;border:1.5px solid var(--ink);
-    text-decoration:none;color:var(--ink);border-radius:100px;
-    transition:all .15s;
-  }
-  .read-all:hover{background:var(--red);color:#fff;border-color:var(--red);}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
 
-  .chapter-list{border-bottom:1.5px solid var(--border);}
-  .chapter-item{
-    display:flex;align-items:center;gap:20px;
-    padding:20px var(--gap);
-    border-bottom:1.5px solid var(--border);
-    text-decoration:none;color:inherit;
-    background:var(--paper);
-    transition:background .12s;
-    position:relative;overflow:hidden;
-  }
-  .chapter-item:last-child{border-bottom:none;}
-  .chapter-item::before{
-    content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
-    background:var(--red);transform:scaleY(0);transform-origin:bottom;
-    transition:transform .2s cubic-bezier(.34,1.56,.64,1);
-  }
-  .chapter-item:hover{background:var(--ink);}
-  .chapter-item:hover::before{transform:scaleY(1);}
+/* ─────────────────────────────────────────────────────────
+   TOPBAR
+───────────────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 300;
+  height: 48px;
+  background: rgba(238,234,224,.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+}
+.topbar__inner {
+  max-width: var(--max); margin: 0 auto; padding: 0 var(--gx);
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar__back {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); text-decoration: none;
+  transition: color .15s;
+}
+.topbar__back:hover { color: var(--ink); }
+.topbar__back svg { width: 14px; height: 14px; flex-shrink: 0; }
+.topbar__brand {
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px; font-weight: 400;
+  letter-spacing: .2em; text-transform: uppercase;
+  text-decoration: none; color: var(--ink);
+}
 
-  .ch-num{
-    font-size:clamp(28px,4vw,42px);font-weight:800;
-    letter-spacing:-2px;color:var(--border);line-height:1;
-    flex-shrink:0;width:70px;text-align:right;
-    transition:color .12s;
-  }
-  .chapter-item:hover .ch-num{color:#333;}
+/* ─────────────────────────────────────────────────────────
+   HERO WRAPPER  — blurred bg + content on top
+───────────────────────────────────────────────────────── */
+.hero-wrap {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
 
-  .ch-thumb{
-    width:44px;height:60px;overflow:hidden;flex-shrink:0;
-    background:var(--border);border:1px solid var(--border);
-  }
-  .ch-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+/* Blurred art background */
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px) saturate(.6) brightness(.85);
+  transform: scale(1.1);          /* hide blur edge bleed */
+  opacity: 0;
+  transition: opacity .8s ease;
+}
+.hero-bg.loaded { opacity: 1; }
 
-  .ch-info{flex:1;}
-  .ch-name{font-size:15px;font-weight:700;margin-bottom:4px;transition:color .12s;}
-  .chapter-item:hover .ch-name{color:var(--bg);}
-  .ch-meta{
-    font-family:'Syne Mono',monospace;font-size:10px;
-    color:var(--muted);letter-spacing:.06em;text-transform:uppercase;
-  }
-  .chapter-item:hover .ch-meta{color:#666;}
+/* Gradient scrim over the blur */
+.hero-bg::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(238,234,224,.55) 0%,
+    rgba(238,234,224,.85) 60%,
+    var(--bg) 100%
+  );
+}
 
-  .ch-arrow{
-    font-size:20px;color:var(--border);transition:all .2s;flex-shrink:0;
+.hero-content {
+  position: relative; z-index: 1;
+  max-width: var(--max); margin: 0 auto; padding: var(--gx) var(--gx) 40px;
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 32px;
+  align-items: flex-end;
+}
+
+/* ─────────────────────────────────────────────────────────
+   COVER THUMBNAIL (hero)
+───────────────────────────────────────────────────────── */
+.hero-cover {
+  width: 140px;
+  aspect-ratio: 2/3;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--border-lt);
+  box-shadow: 0 16px 48px rgba(26,26,26,.22), 0 2px 8px rgba(26,26,26,.12);
+  flex-shrink: 0;
+  position: relative;
+}
+.hero-cover img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+
+/* ─────────────────────────────────────────────────────────
+   HERO INFO
+───────────────────────────────────────────────────────── */
+.hero-info {
+  display: flex; flex-direction: column; gap: 0;
+  padding-bottom: 4px;
+}
+
+.hero-eyebrow {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px; letter-spacing: .26em; text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hero-eyebrow::before {
+  content: ''; width: 16px; height: 1px; background: var(--red); flex-shrink: 0;
+}
+
+.hero-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -.5px;
+  color: var(--ink);
+  margin-bottom: 18px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   STATS ROW
+───────────────────────────────────────────────────────── */
+.stats-row {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 22px;
+}
+.stat-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px; letter-spacing: .08em;
+  color: var(--muted);
+  padding: 0 14px;
+  border-right: 1px solid var(--border);
+}
+.stat-pill:first-child { padding-left: 0; }
+.stat-pill:last-child  { border-right: none; }
+.stat-pill svg {
+  width: 13px; height: 13px; flex-shrink: 0;
+  stroke: var(--muted); fill: none; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.stat-pill strong {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 12px;
+  color: var(--ink); letter-spacing: -.2px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   CTA BUTTON
+───────────────────────────────────────────────────────── */
+.btn-read {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  text-decoration: none;
+  padding: 11px 24px;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 100px;
+  border: 1.5px solid var(--ink);
+  width: fit-content;
+  transition: background .18s, color .18s, transform .18s;
+}
+.btn-read:hover {
+  background: var(--red); border-color: var(--red);
+  transform: translateY(-1px);
+}
+.btn-read svg {
+  width: 13px; height: 13px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform .2s;
+}
+.btn-read:hover svg { transform: translateX(3px); }
+
+/* ─────────────────────────────────────────────────────────
+   CHAPTER SECTION HEADER
+───────────────────────────────────────────────────────── */
+.section-header {
+  max-width: var(--max); margin: 0 auto; padding: 28px var(--gx) 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.section-header h2 {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--muted);
+}
+.chapter-count-tag {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px; letter-spacing: .06em;
+  color: var(--muted);
+}
+
+/* ─────────────────────────────────────────────────────────
+   CHAPTER GRID
+───────────────────────────────────────────────────────── */
+.chapter-grid {
+  max-width: var(--max); margin: 0 auto;
+  padding: 0 var(--gx) 80px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   CHAPTER CARD
+───────────────────────────────────────────────────────── */
+.ch-card {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-lt);
+  border-radius: var(--r);
+  text-decoration: none; color: inherit;
+  transition: border-color .16s, box-shadow .16s, transform .16s;
+  position: relative;
+  overflow: hidden;
+}
+.ch-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--red);
+  transform: scaleY(0); transform-origin: bottom;
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+  border-radius: var(--r) 0 0 var(--r);
+}
+.ch-card:hover {
+  border-color: var(--border);
+  box-shadow: 0 6px 24px rgba(26,26,26,.09);
+  transform: translateY(-2px);
+}
+.ch-card:hover::before { transform: scaleY(1); }
+
+
+/* info */
+.ch-card__info { flex: 1; min-width: 0; }
+.ch-card__name {
+  font-size: 13px; font-weight: 700;
+  line-height: 1.3; letter-spacing: -.1px;
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 4px;
+  transition: color .14s;
+}
+.ch-card:hover .ch-card__name { color: var(--red); }
+.ch-card__meta {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px; color: var(--muted); letter-spacing: .04em;
+}
+
+/* arrow */
+.ch-card__arrow {
+  flex-shrink: 0; color: var(--border-lt);
+  transition: color .16s, transform .2s;
+}
+.ch-card__arrow svg {
+  width: 16px; height: 16px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.ch-card:hover .ch-card__arrow {
+  color: var(--red);
+  transform: translateX(3px);
+}
+
+/* ─────────────────────────────────────────────────────────
+   SKELETON
+───────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  from { background-position: -700px 0; }
+  to   { background-position:  700px 0; }
+}
+.sk {
+  background: linear-gradient(90deg, var(--border-lt) 25%, var(--bg) 50%, var(--border-lt) 75%);
+  background-size: 1400px;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  :root { --gx: 20px; }
+  .hero-content {
+    grid-template-columns: 100px 1fr;
+    gap: 20px; padding-top: 32px;
   }
-  .chapter-item:hover .ch-arrow{color:var(--red);transform:translateX(4px);}
+  .hero-cover { width: 100px; }
+  .stats-row  { flex-wrap: wrap; gap: 8px; }
+  .stat-pill  { border: none; padding: 0 8px 0 0; }
+  .chapter-grid { grid-template-columns: 1fr; }
+}
+
 </style>
 </head>
 <body>
-<header>
-  <a class="back" href="/">← Back</a>
-  <a class="logo" href="/">PANELS</a>
-</header>
 
-<div class="series-hero" id="hero">
-  <div class="series-cover" id="cover-wrap">
-    <div style="width:100%;height:100%;background:var(--border);"></div>
+<!-- ╔══════════════════════════════════════════════
+     TOPBAR
+══════════════════════════════════════════════╗ -->
+<nav class="topbar" aria-label="Site navigation">
+  <div class="topbar__inner">
+    <a class="topbar__back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+      Back to your Vault
+    </a>
+    <a class="topbar__brand" href="/">Vault Library</a>
   </div>
-  <div class="series-info">
-    <div class="series-eyebrow">Series</div>
-    <h1 class="series-title" id="title">Loading…</h1>
-    <div class="series-stats" id="stats"></div>
+</nav>
+
+<!-- ╔══════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════╗ -->
+<div class="hero-wrap">
+  <div class="hero-bg" id="hero-bg" aria-hidden="true"></div>
+
+  <div class="hero-content">
+    <!-- Cover -->
+    <div class="hero-cover" id="cover-wrap" aria-hidden="true">
+      <div class="sk" style="position:absolute;inset:0;border-radius:6px;"></div>
+    </div>
+
+    <!-- Info -->
+    <div class="hero-info">
+      <p class="hero-eyebrow" aria-hidden="true">Series</p>
+      <h1 class="hero-title" id="title">Loading…</h1>
+
+      <!-- Stats row -->
+      <div class="stats-row" id="stats-row" aria-label="Series info">
+        <!-- filled by JS -->
+      </div>
+
+      <!-- CTA -->
+      <a class="btn-read" id="btn-read" href="#">
+        Read from Ch.1
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
   </div>
 </div>
 
-<div class="chapter-header">
+<!-- ╔══════════════════════════════════════════════
+     CHAPTER LIST
+══════════════════════════════════════════════╗ -->
+<div class="section-header">
   <h2>Chapters</h2>
-  <a class="read-all" id="read-all" href="#">Read from Ch.1 →</a>
+  <span class="chapter-count-tag" id="ch-count"></span>
 </div>
 
-<div class="chapter-list" id="list"></div>
+<div class="chapter-grid" id="grid" role="list" aria-label="Chapter list">
+  <!-- skeletons -->
+</div>
 
+<!-- ╔══════════════════════════════════════════════
+     JS
+══════════════════════════════════════════════╗ -->
 <script>
+'use strict';
+
 const dirIndex = {{ dir_index }};
 const seriesPath = "{{ series_path }}";
-const seriesName = seriesPath.split('/').pop();
+const seriesName = decodeURIComponent(seriesPath.split('/').pop());
 
-document.getElementById('title').textContent = decodeURIComponent(seriesName);
+// Set title immediately
+document.getElementById('title').textContent = seriesName;
+document.title = `${seriesName} — Vault Library`;
+
+// Render skeleton cards
+(function skeletons() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div role="listitem" aria-hidden="true" style="
+      display:flex;align-items:center;gap:16px;
+      padding:14px 16px;background:var(--surface);
+      border:1px solid var(--border-lt);border-radius:6px;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+        <div class="sk" style="height:12px;width:70%;"></div>
+        <div class="sk" style="height:10px;width:40%;"></div>
+      </div>
+    </div>`).join('');
+})();
 
 async function load() {
-  const res = await fetch(`/api/chapters/${dirIndex}/${seriesPath}`);
+  const res      = await fetch(`/api/chapters/${dirIndex}/${encodeURIComponent(seriesPath)}`);
   const chapters = await res.json();
 
-  if (chapters.length) {
-    // cover from first chapter
-    const wrap = document.getElementById('cover-wrap');
-    if (chapters[0].cover) {
-      wrap.innerHTML = `<img src="${chapters[0].cover}" alt=""/>`;
-    }
-    document.getElementById('read-all').href =
+  // ── Cover + background blur ──────────────────────
+  const coverWrap = document.getElementById('cover-wrap');
+  const heroBg    = document.getElementById('hero-bg');
+
+  if (chapters.length && chapters[0].cover) {
+    const src = chapters[0].cover;
+    const img = new Image();
+    img.onload = () => {
+      coverWrap.innerHTML = `<img src="${src}" alt="Cover of ${escHtml(seriesName)}"/>`;
+      heroBg.style.backgroundImage = `url('${src}')`;
+      heroBg.classList.add('loaded');
+    };
+    img.src = src;
+
+    // CTA link
+    document.getElementById('btn-read').href =
       `/read/${dirIndex}/${encodeURIComponent(seriesPath)}/${encodeURIComponent(chapters[0].name)}`;
   }
 
+  // ── Stats row ────────────────────────────────────
   const totalPages = chapters.reduce((s, c) => s + c.pages, 0);
-  document.getElementById('stats').innerHTML = `
-    <div class="stat"><strong>${chapters.length}</strong>Chapters</div>
-    <div class="stat"><strong>${totalPages}</strong>Total pages</div>
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-pill">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+      <strong>${chapters.length}</strong> Chapters
+    </div>
+    <div class="stat-pill">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+      </svg>
+      <strong>${totalPages}</strong> Pages
+    </div>
   `;
 
-  document.getElementById('list').innerHTML = chapters.map((ch, i) => `
-    <a class="chapter-item" href="/read/${dirIndex}/${encodeURIComponent(seriesPath)}/${encodeURIComponent(ch.name)}">
-      <span class="ch-num">${String(i+1).padStart(2,'0')}</span>
-      <div class="ch-thumb">
-        ${ch.cover ? `<img src="${ch.cover}" alt=""/>` : ''}
-      </div>
-      <div class="ch-info">
-        <div class="ch-name">${ch.name}</div>
-        <div class="ch-meta">${ch.pages} pages</div>
-      </div>
-      <span class="ch-arrow">→</span>
-    </a>
-  `).join('');
+  document.getElementById('ch-count').textContent =
+    `${chapters.length} chapter${chapters.length !== 1 ? 's' : ''}`;
+
+  // ── Chapter cards ────────────────────────────────
+  const grid = document.getElementById('grid');
+  grid.innerHTML = chapters.map((ch, i) => {
+    const href   = `/read/${dirIndex}/${encodeURIComponent(seriesPath)}/${encodeURIComponent(ch.name)}`;
+
+    return `
+      <article class="ch-card" role="listitem">
+        <a href="${href}" aria-label="${escHtml(ch.name)}, ${ch.pages} pages" style="display:contents">
+          <div class="ch-card__info">
+            <div class="ch-card__name">${escHtml(ch.name)}</div>
+            <div class="ch-card__meta">${ch.pages} pages</div>
+          </div>
+          <span class="ch-card__arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </span>
+        </a>
+      </article>`;
+  }).join('');
+
+  // stagger-reveal
+  grid.querySelectorAll('.ch-card').forEach((el, i) => {
+    el.style.opacity   = '0';
+    el.style.transform = 'translateY(6px)';
+    el.style.transition = `opacity .22s ease ${i * 30}ms, transform .22s ease ${i * 30}ms`;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.opacity   = '1';
+      el.style.transform = 'none';
+    }));
+  });
+}
+
+function escHtml(str) {
+  return str
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 load();
