@@ -184,7 +184,7 @@
 
 <!-- TOP HUD -->
 <div id="hud">
-  <a class="hud-back" href="javascript:history.back()">← Back</a>
+  <a class="hud-back" id="hud-back-link" href="/">← Back</a>
   <span id="hud-title">Loading…</span>
   <span id="hud-counter">— / —</span>
   <button class="hud-btn" id="prev-btn" title="Previous (←)">←</button>
@@ -215,9 +215,14 @@
 <div id="key-hint">← → ARROW KEYS &nbsp;|&nbsp; SPACE TO ADVANCE</div>
 
 <script>
+const dirIndex = {{ dir_index }};
 const readPath = "{{ read_path }}";
 const parts = readPath.split('/');
 const title = decodeURIComponent(parts[parts.length - 1]);
+
+// Figure out whether this is a chapter-based read (series) or a one-shot
+const isChapter = parts.length > 1;
+const seriesName = isChapter ? parts[0] : null;
 
 let pages = [];
 let current = 0;
@@ -228,7 +233,7 @@ let hudTimer;
 document.getElementById('hud-title').textContent = title;
 
 async function init() {
-  const res = await fetch(`/api/pages/${readPath}`);
+  const res = await fetch(`/api/pages/${dirIndex}/${readPath}`);
   pages = await res.json();
   if (!pages.length) {
     document.getElementById('hud-title').textContent = 'No pages found';

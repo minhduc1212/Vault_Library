@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/Python311/python app.py)",
+      "Bash(/c/Python311/python)",
+      "Bash(PYTHONIOENCODING=utf-8 /c/Python311/python \"d:/LT/Reading_Website/app.py\")",
+      "Bash(curl -s http://127.0.0.1:5000/api/config)",
+      "Bash(python3 -c \"import sys,json; print\\(json.dumps\\(json.load\\(sys.stdin\\), indent=2\\)\\)\")",
+      "Bash(curl -s http://127.0.0.1:5000/api/library)"
+    ]
+  }
+}

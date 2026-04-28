@@ -511,12 +511,12 @@ body  {
   <div class="site-header__inner">
     <a class="site-header__logo" href="/">Vault Library</a>
     <span class="site-header__tag">Comic Reader</span>
-    <button class="site-header__settings" id="btn-settings" aria-label="Change comics folder" title="Comics folder settings">
+    <a class="site-header__settings" href="/setup" aria-label="Manage comics folders" title="Comics folder settings">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="12" r="3"/>
         <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
       </svg>
-    </button>
+    </a>
   </div>
 </header>
 
@@ -566,29 +566,6 @@ body  {
   </div>
 </footer>
 
-<!-- ╔══════════════════════════════════════════════
-     MODAL — Comics folder settings
-═══════════════════════════════════════════════╗ -->
-<div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
-  <div class="modal">
-    <div class="modal__title" id="modal-title">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-      </svg>
-      Comics folder
-    </div>
-    <p class="modal__desc">
-      Enter the full path to your comics directory. One-shots go directly inside, series use chapter sub-folders.
-    </p>
-    <input class="modal__input" id="modal-input" type="text" spellcheck="false" placeholder="e.g. D:\Comics"/>
-    <p class="modal__error" id="modal-error"></p>
-    <div class="modal__actions">
-      <button class="modal__btn" id="modal-cancel">Cancel</button>
-      <button class="modal__btn modal__btn--primary" id="modal-save">Save & reload</button>
-    </div>
-  </div>
-</div>
 
 <!-- ╔══════════════════════════════════════════════
      JAVASCRIPT
@@ -667,19 +644,19 @@ function render() {
   /* cards */
   grid.innerHTML = list.map(c => {
     const href  = c.type === 'series'
-      ? `/series/${encodeURIComponent(c.name)}`
-      : `/read/${encodeURIComponent(c.name)}`;
+      ? `/series/${c.dir_index}/${encodeURIComponent(c.name)}`
+      : `/read/${c.dir_index}/${encodeURIComponent(c.name)}`;
 
-    const meta  = c.type === 'series'
+    const meta   = c.type === 'series'
       ? `${c.chapters} ch.`
       : `${c.pages} pg.`;
 
     const badgeClass = c.type === 'series'
       ? 'card__badge card__badge--series'
       : 'card__badge';
-
     const badgeLabel = c.type === 'series' ? 'Series' : 'One-shot';
 
+    // Backend now provides a full 'cover' URL. Use it directly.
     const cover = c.cover
       ? `<img src="${c.cover}" alt="" loading="lazy"/>`
       : `<div class="no-cover" aria-hidden="true">📖</div>`;
@@ -733,80 +710,6 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
-
-/* ── MODAL — comics folder settings ───────────── */
-const backdrop = document.getElementById('modal-backdrop');
-const input    = document.getElementById('modal-input');
-const errorEl  = document.getElementById('modal-error');
-const saveBtn  = document.getElementById('modal-save');
-
-function openModal() {
-  fetch('/api/config').then(r => r.json()).then(cfg => {
-    input.value = cfg.comics_dir || '';
-  }).catch(() => {});
-  backdrop.classList.add('open');
-  backdrop.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => input.focus(), 120);
-}
-
-function closeModal() {
-  backdrop.classList.remove('open');
-  backdrop.setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = '';
-  errorEl.style.display = 'none';
-  errorEl.textContent = '';
-}
-
-document.getElementById('btn-settings').onclick = openModal;
-document.getElementById('modal-cancel').onclick = closeModal;
-
-backdrop.addEventListener('click', e => {
-  if (e.target === backdrop) closeModal();
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && backdrop.classList.contains('open')) closeModal();
-});
-
-input.addEventListener('keydown', e => {
-  if (e.key === 'Enter') saveBtn.click();
-});
-
-saveBtn.addEventListener('click', async () => {
-  const val = input.value.trim();
-  if (!val) {
-    errorEl.textContent = 'Please enter a path.';
-    errorEl.style.display = 'block';
-    return;
-  }
-  saveBtn.textContent = 'Saving…';
-  saveBtn.disabled = true;
-  errorEl.style.display = 'none';
-
-  try {
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comics_dir: val })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      errorEl.textContent = data.error || 'Failed to save.';
-      errorEl.style.display = 'block';
-    } else {
-      closeModal();
-      loadLibrary();
-    }
-  } catch (err) {
-    errorEl.textContent = 'Network error. Check the server.';
-    errorEl.style.display = 'block';
-  } finally {
-    saveBtn.textContent = 'Save & reload';
-    saveBtn.disabled = false;
-  }
-});
-
 loadLibrary();
 </script>
 </body>

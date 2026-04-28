@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vault Library — Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&display=swap" rel="stylesheet"/>
+<style>
+
+/* ─────────────────────────────────────────────────────────
+   RESET & TOKENS
+───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg       : #EEEAE0;
+  --surface  : #F5F2EB;
+  --ink      : #111010;
+  --ink-2    : #3A3834;
+  --muted    : #6B6560;
+  --red      : #D62B1F;
+  --green    : #2D7B42;
+  --border   : #C8C2B6;
+  --border-lt: #DDDAD2;
+
+  --max : 620px;
+  --gx  : 48px;
+  --r   : 5px;
+
+  --s1  : 8px;
+  --s2  : 16px;
+  --s3  : 24px;
+  --s4  : 32px;
+  --s5  : 40px;
+  --s6  : 48px;
+  --s8  : 64px;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background : var(--bg);
+  color      : var(--ink);
+  font-family: 'Syne', sans-serif;
+  min-height : 100vh;
+  -webkit-font-smoothing: antialiased;
+  display    : flex;
+  flex-direction: column;
+}
+
+/* ─────────────────────────────────────────────────────────
+   HEADER
+───────────────────────────────────────────────────────── */
+.site-header {
+  position   : sticky;
+  top        : 0;
+  z-index    : 200;
+  background : var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.site-header__inner {
+  max-width  : var(--max);
+  margin     : 0 auto;
+  padding    : 0 var(--gx);
+  height     : 48px;
+  display    : flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.site-header__logo {
+  font-size     : 11px;
+  font-weight   : 800;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color         : var(--ink);
+}
+.site-header__tag {
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 10px;
+  color         : var(--muted);
+  letter-spacing: .06em;
+}
+
+/* ─────────────────────────────────────────────────────────
+   MAIN
+───────────────────────────────────────────────────────── */
+.l-page {
+  max-width : var(--max);
+  margin    : 0 auto;
+  padding   : 0 var(--gx);
+  flex      : 1;
+}
+
+.hero {
+  padding       : var(--s6) 0 var(--s5);
+  text-align    : center;
+}
+.hero__label {
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 9px;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color         : var(--red);
+  margin-bottom : var(--s1);
+  display       : flex;
+  align-items   : center;
+  justify-content: center;
+  gap           : 8px;
+}
+.hero__label::before,
+.hero__label::after {
+  content   : '';
+  display   : inline-block;
+  width     : 18px;
+  height    : 1px;
+  background: var(--red);
+}
+.hero__heading {
+  font-size    : clamp(24px, 2.8vw, 34px);
+  font-weight  : 800;
+  line-height  : 1.15;
+  letter-spacing: -1px;
+  margin-bottom: var(--s1);
+}
+.hero__heading em { font-style: normal; color: var(--red); }
+.hero__sub {
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 10px;
+  color         : var(--muted);
+  letter-spacing: .06em;
+  line-height   : 1.8;
+}
+
+/* ─────────────────────────────────────────────────────────
+   PATH LIST
+───────────────────────────────────────────────────────── */
+.path-section {
+  padding-bottom: var(--s4);
+}
+
+.path-list {
+  display       : flex;
+  flex-direction: column;
+  gap           : 1px;
+  border        : 1px solid var(--border);
+  border-radius : var(--r);
+  overflow      : hidden;
+  background    : var(--border);
+}
+
+.path-item {
+  display       : flex;
+  align-items   : center;
+  gap           : var(--s2);
+  padding       : var(--s2) var(--s3);
+  background    : var(--surface);
+  transition    : background .15s;
+}
+.path-item:hover { background: #FEFCF8; }
+
+.path-item__icon {
+  flex-shrink  : 0;
+  width        : 36px;
+  height       : 36px;
+  border-radius: var(--r);
+  background   : var(--bg);
+  border       : 1px solid var(--border);
+  display      : flex;
+  align-items  : center;
+  justify-content: center;
+  color        : var(--muted);
+}
+.path-item__icon svg { display: block; }
+
+.path-item__info {
+  flex        : 1;
+  min-width   : 0;
+}
+.path-item__label {
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 8px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color         : var(--muted);
+  margin-bottom : 2px;
+}
+.path-item__path {
+  font-size     : 12px;
+  font-weight   : 600;
+  letter-spacing: -.1px;
+  color         : var(--ink-2);
+  word-break    : break-all;
+  line-height   : 1.4;
+}
+
+.path-item__remove {
+  flex-shrink   : 0;
+  width         : 28px;
+  height        : 28px;
+  border-radius : 50%;
+  border        : 1px solid transparent;
+  background    : transparent;
+  color         : var(--muted);
+  cursor        : pointer;
+  display       : flex;
+  align-items   : center;
+  justify-content: center;
+  transition    : all .15s;
+  font-size     : 16px;
+  line-height   : 1;
+}
+.path-item__remove:hover {
+  border-color : var(--red);
+  color        : var(--red);
+  background   : #FEF5F4;
+}
+
+/* ─────────────────────────────────────────────────────────
+   ADD FORM
+───────────────────────────────────────────────────────── */
+.add-form {
+  display       : flex;
+  gap           : var(--s1);
+  margin-top    : var(--s3);
+}
+.add-form__input {
+  flex          : 1;
+  padding       : 10px 14px;
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 11px;
+  border        : 1px solid var(--border);
+  border-radius : var(--r);
+  background    : var(--surface);
+  color         : var(--ink);
+  letter-spacing: .04em;
+  outline       : none;
+  transition    : border-color .15s;
+}
+.add-form__input:focus { border-color: var(--ink); }
+.add-form__input::placeholder { color: var(--border); }
+
+.add-form__btn {
+  padding       : 10px 18px;
+  border-radius : var(--r);
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor        : pointer;
+  transition    : all .15s;
+  border        : 1px solid var(--border);
+  background    : transparent;
+  color         : var(--muted);
+  white-space   : nowrap;
+}
+.add-form__btn:hover { border-color: var(--ink); color: var(--ink); }
+
+/* ─────────────────────────────────────────────────────────
+   ERROR
+───────────────────────────────────────────────────────── */
+.error-msg {
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 10px;
+  color         : var(--red);
+  letter-spacing: .04em;
+  margin-top    : var(--s1);
+  display       : none;
+}
+.error-msg.is-visible { display: block; }
+
+/* ─────────────────────────────────────────────────────────
+   ACTIONS
+───────────────────────────────────────────────────────── */
+.actions {
+  padding       : var(--s1) 0 var(--s8);
+  display       : flex;
+  gap           : var(--s2);
+  justify-content: center;
+}
+
+.btn {
+  padding       : 12px 28px;
+  border-radius : 100px;
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor        : pointer;
+  transition    : all .18s;
+  text-decoration: none;
+  display       : inline-flex;
+  align-items   : center;
+  gap           : 8px;
+}
+.btn--outline {
+  border        : 1px solid var(--border);
+  background    : transparent;
+  color         : var(--muted);
+}
+.btn--outline:hover { border-color: var(--ink); color: var(--ink); }
+.btn--primary {
+  border        : 1px solid var(--ink);
+  background    : var(--ink);
+  color         : var(--bg);
+}
+.btn--primary:hover { background: var(--red); border-color: var(--red); color: #fff; }
+.btn:disabled { opacity: .35; cursor: default; pointer-events: none; }
+
+/* ─────────────────────────────────────────────────────────
+   EMPTY STATE
+───────────────────────────────────────────────────────── */
+.empty-folder-list {
+  text-align : center;
+  padding    : var(--s5) var(--s3);
+}
+.empty-folder-list__icon {
+  font-size   : 36px;
+  opacity     : .15;
+  margin-bottom: var(--s2);
+}
+.empty-folder-list__text {
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 10px;
+  color         : var(--muted);
+  letter-spacing: .06em;
+  line-height   : 1.8;
+}
+
+/* ─────────────────────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────────────────────── */
+.site-footer {
+  border-top: 1px solid var(--border);
+}
+.site-footer__inner {
+  max-width  : var(--max);
+  margin     : 0 auto;
+  padding    : var(--s2) var(--gx);
+  display    : flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Syne Mono', monospace;
+  font-size  : 10px;
+  color      : var(--muted);
+  letter-spacing: .08em;
+}
+
+/* ─────────────────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  :root { --gx: 20px; }
+  .add-form { flex-direction: column; }
+  .actions  { flex-direction: column; align-items: stretch; }
+  .btn      { justify-content: center; }
+  .path-item { padding: var(--s2) var(--s2); }
+}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="site-header__logo" href="/">Vault Library</a>
+    <span class="site-header__tag">Setup</span>
+  </div>
+</header>
+
+<main>
+  <div class="l-page">
+
+    <!-- HERO -->
+    <section class="hero">
+      <p class="hero__label">Get started</p>
+      <h1 class="hero__heading">
+        Where are your<br><em>comics</em>?
+      </h1>
+      <p class="hero__sub">
+        Add one or more folders that contain your comics.<br>
+        One-shots go directly inside, series use chapter sub-folders.
+      </p>
+    </section>
+
+    <!-- PATH LIST -->
+    <section class="path-section">
+      <div class="path-list" id="path-list"></div>
+
+      <div class="add-form">
+        <input class="add-form__input" id="path-input" type="text" spellcheck="false"
+               placeholder="e.g. D:\Comics or /home/user/manga"/>
+        <button class="add-form__btn" id="add-btn">+ Add folder</button>
+      </div>
+      <p class="error-msg" id="error-msg"></p>
+    </section>
+
+    <!-- ACTIONS -->
+    <div class="actions">
+      <a class="btn btn--outline" href="/">Skip for now</a>
+      <button class="btn btn--primary" id="go-btn">Go to Library →</button>
+    </div>
+
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <span>Vault Library</span>
+    <span id="path-count">0 folders configured</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+const COOKIE_KEY = 'vault_comics_dirs';
+
+/* ── COOKIE HELPERS ──────────────────────────── */
+function setCookie(name, value, days) {
+  const d = new Date();
+  d.setTime(d.getTime() + days * 86400000);
+  document.cookie = name + '=' + encodeURIComponent(value) +
+    ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+}
+
+function getCookie(name) {
+  const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return m ? decodeURIComponent(m[2]) : null;
+}
+
+/* ── STATE ───────────────────────────────────── */
+let dirs = [];
+
+/* ── RENDER PATH LIST ────────────────────────── */
+function render() {
+  const list = document.getElementById('path-list');
+  const countEl = document.getElementById('path-count');
+
+  countEl.textContent = dirs.length === 0
+    ? '0 folders configured'
+    : dirs.length === 1 ? '1 folder' : dirs.length + ' folders';
+
+  if (!dirs.length) {
+    list.innerHTML = `
+      <div class="path-item" style="justify-content:center;">
+        <div class="empty-folder-list">
+          <div class="empty-folder-list__icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+            </svg>
+          </div>
+          <div class="empty-folder-list__text">No folders added yet.<br>Add a comics folder above to get started.</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = dirs.map((d, i) => `
+    <div class="path-item">
+      <div class="path-item__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+        </svg>
+      </div>
+      <div class="path-item__info">
+        <div class="path-item__label">Folder ${i + 1}</div>
+        <div class="path-item__path">${escHtml(d)}</div>
+      </div>
+      <button class="path-item__remove" data-index="${i}" title="Remove this folder" aria-label="Remove folder ${i+1}">×</button>
+    </div>
+  `).join('');
+
+  /* wire remove buttons */
+  list.querySelectorAll('.path-item__remove').forEach(btn => {
+    btn.addEventListener('click', () => removePath(parseInt(btn.dataset.index)));
+  });
+}
+
+/* ── ADD PATH ────────────────────────────────── */
+async function addPath() {
+  const input   = document.getElementById('path-input');
+  const errorEl = document.getElementById('error-msg');
+  const val     = input.value.trim();
+
+  if (!val) {
+    showError('Please enter a folder path.');
+    return;
+  }
+
+  const addBtn = document.getElementById('add-btn');
+  addBtn.textContent = 'Adding…';
+  addBtn.disabled = true;
+  hideError();
+
+  try {
+    const res = await fetch('/api/config/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: val })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Failed to add folder.');
+    } else {
+      dirs = data.comics_dirs;
+      persistCookie();
+      render();
+      input.value = '';
+      input.focus();
+    }
+  } catch {
+    showError('Network error. Is the server running?');
+  } finally {
+    addBtn.textContent = '+ Add folder';
+    addBtn.disabled = false;
+  }
+}
+
+/* ── REMOVE PATH ─────────────────────────────── */
+async function removePath(index) {
+  try {
+    const res = await fetch('/api/config/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ index: index })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      dirs = data.comics_dirs;
+      persistCookie();
+      render();
+    } else {
+      showError(data.error || 'Failed to remove folder.');
+    }
+  } catch {
+    showError('Network error. Is the server running?');
+  }
+}
+
+/* ── ERROR ───────────────────────────────────── */
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.classList.add('is-visible');
+}
+function hideError() {
+  const el = document.getElementById('error-msg');
+  el.textContent = '';
+  el.classList.remove('is-visible');
+}
+
+/* ── COOKIE PERSISTENCE ──────────────────────── */
+function persistCookie() {
+  setCookie(COOKIE_KEY, JSON.stringify(dirs), 365);
+}
+
+/* ── UTIL ────────────────────────────────────── */
+function escHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ── INIT ────────────────────────────────────── */
+async function init() {
+  hideError();
+
+  /* try server first */
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    if (cfg.comics_dirs && cfg.comics_dirs.length) {
+      dirs = cfg.comics_dirs;
+    }
+  } catch { /* server not available */ }
+
+  /* fall back to cookie */
+  if (!dirs.length) {
+    const raw = getCookie(COOKIE_KEY);
+    if (raw) {
+      try { dirs = JSON.parse(raw); } catch { dirs = []; }
+    }
+  }
+
+  render();
+
+  /* wire up add */
+  document.getElementById('add-btn').addEventListener('click', addPath);
+  document.getElementById('path-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addPath();
+  });
+
+  /* Go to library */
+  document.getElementById('go-btn').addEventListener('click', () => {
+    if (dirs.length) {
+      /* ensure server has the latest */
+      setCookie(COOKIE_KEY, JSON.stringify(dirs), 365);
+    }
+    window.location.href = '/';
+  });
+}
+
+init();
+</script>
+</body>
+</html>

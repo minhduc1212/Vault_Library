@@ -143,13 +143,14 @@
 <div class="chapter-list" id="list"></div>
 
 <script>
+const dirIndex = {{ dir_index }};
 const seriesPath = "{{ series_path }}";
 const seriesName = seriesPath.split('/').pop();
 
 document.getElementById('title').textContent = decodeURIComponent(seriesName);
 
 async function load() {
-  const res = await fetch(`/api/chapters/${seriesPath}`);
+  const res = await fetch(`/api/chapters/${dirIndex}/${seriesPath}`);
   const chapters = await res.json();
 
   if (chapters.length) {
@@ -159,7 +160,7 @@ async function load() {
       wrap.innerHTML = `<img src="${chapters[0].cover}" alt=""/>`;
     }
     document.getElementById('read-all').href =
-      `/read/${encodeURIComponent(seriesPath)}/${encodeURIComponent(chapters[0].name)}`;
+      `/read/${dirIndex}/${encodeURIComponent(seriesPath)}/${encodeURIComponent(chapters[0].name)}`;
   }
 
   const totalPages = chapters.reduce((s, c) => s + c.pages, 0);
@@ -169,7 +170,7 @@ async function load() {
   `;
 
   document.getElementById('list').innerHTML = chapters.map((ch, i) => `
-    <a class="chapter-item" href="/read/${encodeURIComponent(seriesPath)}/${encodeURIComponent(ch.name)}">
+    <a class="chapter-item" href="/read/${dirIndex}/${encodeURIComponent(seriesPath)}/${encodeURIComponent(ch.name)}">
       <span class="ch-num">${String(i+1).padStart(2,'0')}</span>
       <div class="ch-thumb">
         ${ch.cover ? `<img src="${ch.cover}" alt=""/>` : ''}
