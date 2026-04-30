@@ -4,6 +4,7 @@
  - cause scan all folder to the get img -> create a comic but how to seperate the comics? is it oneshot or the chapter of a series because all im is just a folder with images, no info about the comic -> done -> scan in with the strcuture of folder
  - when add the comics path, create a comic with the path, the name of the comic is the name of the folder, the cover image is the first image in the folder, and the description is empty, genres is empty, author is empty, save to db
  - when add 1 comic with db: title, author, description, cover image, genres, path
+ - add logging
  - add epub, pdf, ...
  - 3 mode:  user can clone the project and share the comics to the others 
             or create the server for everybpdy share the comics and save to the server of admin

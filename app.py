@@ -20,36 +20,18 @@ db.connect()
 initialize_database(db)
 
 
-def _find_cover(comic_dir: Path) -> str | None:
-    """Return the first image found in a comic folder (filename or relative path for series)."""
-    children = sorted(p for p in comic_dir.iterdir() if not p.name.startswith('.'))
-    images = [c for c in children if is_image(c)]
-    if images:
-        return images[0].name
-
-    for c in children:
-        if c.is_dir():
-            try:
-                for p in sorted(c.rglob("*")):
-                    if is_image(p) and not any(part.startswith('.') for part in p.relative_to(c).parts):
-                        return str(p.relative_to(comic_dir)).replace('\\', '/')
-            except Exception:
-                pass
-    return None
-
-
 def _add_comics_from_dir(root: Path) -> int:
     """Scan a directory for comic subfolders and insert them into the DB. Returns count added."""
     if not root.is_dir():
         return 0
     count = 0
     for child in sorted(p for p in root.iterdir() if not p.name.startswith('.') and p.is_dir()):
-        cover = _find_cover(child)
-        if cover is None:
+        meta = scan_entry(child)
+        if meta is None:
             continue
         db.execute_query(
-            "INSERT INTO comics (title, author, genres, description, cover_image, path) VALUES (?, ?, ?, ?, ?, ?)",
-            (child.name, "", "", "", cover, str(child))
+            "INSERT INTO comics (title, author, genres, description, cover_image, path, type, pages, chapters) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (meta["name"], "", "", "", meta.get("cover_path", ""), str(child), meta["type"], meta["pages"], meta["chapters"])
         )
         count += 1
     return count
@@ -162,33 +144,36 @@ def setup():
 
 @app.route("/api/library")
 def api_library():
+    rows = db.execute_query(
+        "SELECT title, author, genres, description, cover_image, path, type, pages, chapters FROM comics"
+    )
     entries = []
-    for di, root in enumerate(COMICS_DIRS):
-        if not root.exists():
-            print(f"  ! Lỗi: Không tồn tại đường dẫn {root}")
-            continue
-            
-        added_any = False
-        for child in sorted(p for p in root.iterdir() if not p.name.startswith('.')):
-            meta = scan_entry(child)
-            if meta:
-                meta["dir_index"] = di
-                meta["dir_path"] = str(root)
-                if meta.get("cover_path"):
-                    meta["cover"] = f"/img/{di}/{meta['name']}/{meta['cover_path']}"
-                entries.append(meta)
-                added_any = True
-                
-        if not added_any:
-            print(f"  -> Không có truyện con, quét thử chính gốc '{root.name}'...")
-            meta = scan_entry(root)
-            if meta:
-                meta["dir_index"] = di
-                meta["dir_path"] = str(root)
-                if meta.get("cover_path"):
-                    meta["cover"] = f"/img/{di}/{meta['name']}/{meta['cover_path']}"
-                entries.append(meta)
-    print(f"--- Quét xong: Hiển thị {len(entries)} truyện ---\n")
+    for row in rows:
+        title, author, genres, description, cover_image, path_str, comic_type, pages, chapters = row
+        comic_path = Path(path_str)
+
+        dir_index = 0
+        dir_path_str = str(COMICS_DIRS[0]) if COMICS_DIRS else ""
+        for di, root in enumerate(COMICS_DIRS):
+            if path_str.startswith(str(root)):
+                dir_index = di
+                dir_path_str = str(root)
+                break
+
+        entry = {
+            "name": title,
+            "type": comic_type or "oneshot",
+            "pages": pages or 0,
+            "chapters": chapters or 0,
+            "cover_path": cover_image,
+            "dir_index": dir_index,
+            "dir_path": dir_path_str,
+        }
+        if cover_image:
+            entry["cover"] = f"/img/{dir_index}/{title}/{cover_image}"
+        entries.append(entry)
+
+    print(f"--- DB: Hiển thị {len(entries)} truyện ---\n")
     return jsonify(entries)
 
 
@@ -325,6 +310,39 @@ def api_config_remove():
     _save_config({"comics_dirs": [str(d) for d in COMICS_DIRS]})
     _remove_comics_by_root(removed_dir)
     return jsonify({"ok": True, "comics_dirs": [str(d) for d in COMICS_DIRS]})
+
+
+@app.route("/api/comics/add", methods=["POST"])
+def api_comics_add():
+    data = request.get_json(silent=True) or {}
+    title = data.get("title", "").strip()
+    path_str = data.get("path", "").strip()
+    if not title or not path_str:
+        return jsonify({"error": "Title and path are required"}), 400
+
+    p = Path(path_str).expanduser().resolve()
+    if not p.exists():
+        return jsonify({"error": "Path does not exist"}), 400
+    if not p.is_dir():
+        return jsonify({"error": "Path is not a directory"}), 400
+
+    author = data.get("author", "").strip()
+    genres = data.get("genres", "").strip()
+    description = data.get("description", "").strip()
+    cover_image = data.get("cover_image", "").strip()
+
+    meta = scan_entry(p)
+    if meta is None:
+        return jsonify({"error": "No images found in the folder"}), 400
+
+    if not cover_image:
+        cover_image = meta.get("cover_path", "")
+
+    db.execute_query(
+        "INSERT INTO comics (title, author, genres, description, cover_image, path, type, pages, chapters) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (title, author, genres, description, cover_image, str(p), meta["type"], meta["pages"], meta["chapters"])
+    )
+    return jsonify({"ok": True, "comic": {"title": title, "path": str(p)}})
 
 
 @app.route("/api/tunnel-qr")

@@ -34,7 +34,16 @@ def initialize_database(db):
         genres TEXT,
         description TEXT,
         cover_image TEXT,
-        path TEXT NOT NULL
+        path TEXT NOT NULL,
+        type TEXT,
+        pages INTEGER,
+        chapters INTEGER
     );
     """
     db.execute_query(create_table_query)
+
+    for col, col_type in [("type", "TEXT"), ("pages", "INTEGER"), ("chapters", "INTEGER")]:
+        try:
+            db.execute_query(f"ALTER TABLE comics ADD COLUMN {col} {col_type}")
+        except Exception:
+            pass

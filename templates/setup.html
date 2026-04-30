@@ -328,6 +328,101 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────
+   SINGLE COMIC FORM
+───────────────────────────────────────────────────────── */
+.comic-form-section {
+  padding-bottom: var(--s4);
+}
+
+.comic-form-toggle {
+  display       : block;
+  width         : 100%;
+  padding       : 10px 18px;
+  border-radius : var(--r);
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor        : pointer;
+  transition    : all .15s;
+  border        : 1px dashed var(--border);
+  background    : transparent;
+  color         : var(--muted);
+  text-align    : center;
+}
+.comic-form-toggle:hover { border-color: var(--ink); color: var(--ink); }
+.comic-form-toggle.is-active { border-style: solid; border-color: var(--border); border-bottom: 0; border-radius: var(--r) var(--r) 0 0; }
+
+.comic-form {
+  display        : flex;
+  flex-direction : column;
+  gap            : var(--s2);
+  padding        : var(--s3);
+  border         : 1px solid var(--border);
+  border-top     : 0;
+  border-radius  : 0 0 var(--r) var(--r);
+  background     : var(--surface);
+}
+
+.comic-form__row {
+  display : flex;
+  gap     : var(--s2);
+}
+.comic-form__row > * { flex: 1; }
+
+.comic-form__group {
+  display        : flex;
+  flex-direction : column;
+  gap            : 4px;
+}
+.comic-form__label {
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 8px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color         : var(--muted);
+}
+.comic-form__input,
+.comic-form__textarea {
+  padding       : 8px 12px;
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 11px;
+  border        : 1px solid var(--border-lt);
+  border-radius : var(--r);
+  background    : var(--bg);
+  color         : var(--ink);
+  letter-spacing: .04em;
+  outline       : none;
+  transition    : border-color .15s;
+}
+.comic-form__input:focus,
+.comic-form__textarea:focus { border-color: var(--ink); }
+.comic-form__input::placeholder,
+.comic-form__textarea::placeholder { color: var(--border); }
+.comic-form__textarea { resize: vertical; min-height: 60px; }
+
+.comic-form__submit {
+  padding       : 10px 18px;
+  border-radius : var(--r);
+  font-family   : 'Syne Mono', monospace;
+  font-size     : 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor        : pointer;
+  transition    : all .15s;
+  border        : 1px solid var(--ink);
+  background    : var(--ink);
+  color         : var(--bg);
+  align-self    : flex-end;
+}
+.comic-form__submit:hover { background: var(--red); border-color: var(--red); color: #fff; }
+.comic-form__submit:disabled { opacity: .35; cursor: default; pointer-events: none; }
+
+@media (max-width: 600px) {
+  .comic-form__row { flex-direction: column; }
+}
+
+/* ─────────────────────────────────────────────────────────
    FOOTER
 ───────────────────────────────────────────────────────── */
 .site-footer {
@@ -394,6 +489,43 @@ body {
         <button class="add-form__btn" id="add-btn">+ Add folder</button>
       </div>
       <p class="error-msg" id="error-msg"></p>
+    </section>
+
+    <!-- SINGLE COMIC FORM -->
+    <section class="comic-form-section">
+      <button class="comic-form-toggle" id="comic-form-toggle">+ Add single comic</button>
+      <form class="comic-form" id="comic-form" style="display:none;">
+        <div class="comic-form__row">
+          <div class="comic-form__group">
+            <label class="comic-form__label" for="sc-title">Title *</label>
+            <input class="comic-form__input" id="sc-title" type="text" placeholder="e.g. One Piece Vol.1"/>
+          </div>
+          <div class="comic-form__group">
+            <label class="comic-form__label" for="sc-author">Author</label>
+            <input class="comic-form__input" id="sc-author" type="text" placeholder="e.g. Oda Eiichiro"/>
+          </div>
+        </div>
+        <div class="comic-form__row">
+          <div class="comic-form__group">
+            <label class="comic-form__label" for="sc-genres">Genres</label>
+            <input class="comic-form__input" id="sc-genres" type="text" placeholder="e.g. Action, Adventure"/>
+          </div>
+          <div class="comic-form__group">
+            <label class="comic-form__label" for="sc-cover">Cover image (auto if empty)</label>
+            <input class="comic-form__input" id="sc-cover" type="text" placeholder="cover.jpg or chapter/01.jpg"/>
+          </div>
+        </div>
+        <div class="comic-form__group">
+          <label class="comic-form__label" for="sc-path">Folder path *</label>
+          <input class="comic-form__input" id="sc-path" type="text" spellcheck="false" placeholder="D:\Comics\One Piece Vol.1"/>
+        </div>
+        <div class="comic-form__group">
+          <label class="comic-form__label" for="sc-desc">Description</label>
+          <textarea class="comic-form__textarea" id="sc-desc" placeholder="Optional description..."></textarea>
+        </div>
+        <button class="comic-form__submit" id="sc-submit" type="button">Save Comic</button>
+      </form>
+      <p class="error-msg" id="comic-error-msg"></p>
     </section>
 
     <!-- ACTIONS -->
@@ -563,6 +695,71 @@ function escHtml(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/* ── SINGLE COMIC FORM ────────────────────────── */
+function toggleComicForm() {
+  const form = document.getElementById('comic-form');
+  const toggle = document.getElementById('comic-form-toggle');
+  const visible = form.style.display !== 'none';
+  form.style.display = visible ? 'none' : 'flex';
+  toggle.classList.toggle('is-active', !visible);
+  document.getElementById('comic-error-msg').classList.remove('is-visible');
+}
+
+async function addComic() {
+  const title    = document.getElementById('sc-title').value.trim();
+  const path     = document.getElementById('sc-path').value.trim();
+  const author   = document.getElementById('sc-author').value.trim();
+  const genres   = document.getElementById('sc-genres').value.trim();
+  const cover    = document.getElementById('sc-cover').value.trim();
+  const desc     = document.getElementById('sc-desc').value.trim();
+  const errorEl  = document.getElementById('comic-error-msg');
+  const submitBtn = document.getElementById('sc-submit');
+
+  if (!title || !path) {
+    errorEl.textContent = 'Title and folder path are required.';
+    errorEl.classList.add('is-visible');
+    return;
+  }
+
+  submitBtn.textContent = 'Saving…';
+  submitBtn.disabled = true;
+  errorEl.classList.remove('is-visible');
+
+  try {
+    const res = await fetch('/api/comics/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, path, author, genres, cover_image: cover, description: desc })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Failed to add comic.';
+      errorEl.classList.add('is-visible');
+    } else {
+      /* clear form */
+      document.getElementById('sc-title').value = '';
+      document.getElementById('sc-path').value = '';
+      document.getElementById('sc-author').value = '';
+      document.getElementById('sc-genres').value = '';
+      document.getElementById('sc-cover').value = '';
+      document.getElementById('sc-desc').value = '';
+      errorEl.textContent = 'Comic "' + escHtml(title) + '" added!';
+      errorEl.style.color = 'var(--green)';
+      errorEl.classList.add('is-visible');
+      setTimeout(() => {
+        errorEl.style.color = '';
+        errorEl.classList.remove('is-visible');
+      }, 3000);
+    }
+  } catch {
+    errorEl.textContent = 'Network error. Is the server running?';
+    errorEl.classList.add('is-visible');
+  } finally {
+    submitBtn.textContent = 'Save Comic';
+    submitBtn.disabled = false;
+  }
+}
+
 /* ── INIT ────────────────────────────────────── */
 async function init() {
   hideError();
@@ -591,6 +788,10 @@ async function init() {
   document.getElementById('path-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addPath();
   });
+
+  /* wire up single comic form */
+  document.getElementById('comic-form-toggle').addEventListener('click', toggleComicForm);
+  document.getElementById('sc-submit').addEventListener('click', addComic);
 
   /* Go to library */
   document.getElementById('go-btn').addEventListener('click', () => {
