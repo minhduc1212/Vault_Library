@@ -108,6 +108,7 @@
 
   .scroll-page{
     max-width:min(800px,100%);width:100%;
+    min-height:60vh; /* Giữ không gian tối thiểu khi ảnh chưa tải xong */
     display:block;
     opacity:0;transform:translateY(12px);
     transition:opacity .4s ease,transform .4s ease;
@@ -345,7 +346,11 @@ function updateHud() {
 
 function showHud() {
   document.getElementById('hud').classList.remove('hidden');
-  document.getElementById('bottom-hud').classList.remove('hidden');
+  if (mode === 'page') {
+    document.getElementById('bottom-hud').classList.remove('hidden');
+  } else {
+    document.getElementById('bottom-hud').classList.add('hidden');
+  }
   clearTimeout(hudTimer);
   if (mode === 'page') {
     hudTimer = setTimeout(() => {
@@ -409,6 +414,9 @@ function setMode(m) {
   const scrollWrap = document.getElementById('scroll-wrap');
   const canvas     = document.getElementById('canvas');
 
+  // Lưu lại giá trị trang hiện tại trước khi bị IntersectionObserver ghi đè lúc load
+  const targetIndex = current;
+
   document.getElementById('btn-page').classList.toggle('active', m === 'page');
   document.getElementById('btn-scroll').classList.toggle('active', m === 'scroll');
 
@@ -425,12 +433,14 @@ function setMode(m) {
     if (!scrollWrap.children.length) buildScrollMode();
     // scroll to current page
     setTimeout(() => {
-      const el = scrollWrap.querySelectorAll('.scroll-page')[current];
-      if (el) el.scrollIntoView({ behavior:'smooth' });
+      if (targetIndex > 0) {
+        const el = scrollWrap.querySelectorAll('.scroll-page')[targetIndex];
+        if (el) el.scrollIntoView({ behavior:'smooth' });
+      }
     }, 100);
     // keep HUD visible in scroll mode
     document.getElementById('hud').classList.remove('hidden');
-    document.getElementById('bottom-hud').classList.remove('hidden');
+    document.getElementById('bottom-hud').classList.add('hidden');
     // attach chapter scroll detection
     attachScrollChapterDetect(scrollWrap);
   }
@@ -441,18 +451,29 @@ function setMode(m) {
 }
 
 // ── SCROLL CHAPTER DETECT ──────────────────────────────────
+let scrollDetectActive = false;
+
 function attachScrollChapterDetect(wrap) {
   detachScrollChapterDetect();
   if (currentChapIndex < 0 || chapters.length <= 1) return;
+  
+  // Tạm khóa theo dõi chuyển chương lúc mới load để tránh bị kích hoạt do scrollIntoView
+  scrollDetectActive = false;
   document.getElementById('canvas').addEventListener('scroll', onScrollChapter);
+
+  // Sau 1 giây mới cho phép bắt đầu nhận diện thao tác cuộn đến cuối
+  setTimeout(() => { scrollDetectActive = true; }, 1000);
 }
 
 function detachScrollChapterDetect() {
   document.getElementById('canvas').removeEventListener('scroll', onScrollChapter);
   clearTimeout(scrollChapTimer);
+  scrollDetectActive = false;
 }
 
 function onScrollChapter() {
+  if (!scrollDetectActive) return;
+
   const canvas = document.getElementById('canvas');
   clearTimeout(scrollChapTimer);
   scrollChapTimer = setTimeout(() => {
