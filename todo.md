@@ -9,8 +9,11 @@
  - add logging -> done
  - oneshot also has page to introduce the comic, like the series, but only one chapter, so the page will show the title, author, description, cover image, genres and a button to read the comic
  - back to comic page when click to back in reader
+ - chapter list in reader
  - add user, login and permission to add comics, only admin can add comics, other users can only read comics or if user add comics, it means that the comics will be added to the server of admin, and other users can read the comics from the server of admin, but they cannot add comics to their own library, they can only read comics from the server of admin
  - add epub, pdf, ...
+ 
+ - reader from many web: mangadex, ...
  - 3 mode:  user can clone the project and share the comics to the others 
             or create the server for everybpdy share the comics and save to the server of admin
             or share p2p, it likes a torrent, the peoples who share will create an network to share the comics
