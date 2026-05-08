@@ -11,7 +11,9 @@
  - back to comic page when click to back in reader [Done]
  - chapter list in reader [Done]
 
- - reader from many web: mangadex, ...
+ - divide to local and other site(the other site will list the popular titles)
+ - add download to the local
+ - reader from many web:    , ...
  - add user, login and permission to add comics, only admin can add comics, other users can only read comics or if user add comics, it means that the comics will be added to the server of admin, and other users can read the comics from the server of admin, but they cannot add comics to their own library, they can only read comics from the server of admin
  - add epub, pdf, ...
  

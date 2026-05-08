@@ -243,13 +243,43 @@ body  {
 .toolbar__count.is-visible { visibility: visible; }
 
 /* ─────────────────────────────────────────────────────────
+   SECTIONS
+───────────────────────────────────────────────────────── */
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+  padding-bottom: var(--s8);
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.section__heading {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section__heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-lt);
+}
+
+/* ─────────────────────────────────────────────────────────
    GRID
 ───────────────────────────────────────────────────────── */
 .library-grid {
   display              : grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap                  : var(--s4) var(--s3);
-  padding-bottom       : var(--s8);
 }
 
 /* ─────────────────────────────────────────────────────────

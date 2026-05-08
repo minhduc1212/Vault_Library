@@ -64,17 +64,18 @@
       </div>
     </section>
 
-    <!-- TOOLBAR -->
-    <div class="toolbar" role="toolbar" aria-label="Filter library">
-      <button class="chip is-active" data-filter="all"     aria-pressed="true" >All</button>
-      <button class="chip"           data-filter="oneshot" aria-pressed="false">One-shots</button>
-      <button class="chip"           data-filter="series"  aria-pressed="false">Series</button>
-      <span class="toolbar__spacer"></span>
-      <span class="toolbar__count" id="filter-count" aria-live="polite"></span>
-    </div>
+    <!-- SECTIONS -->
+    <div class="sections">
+      <section class="section" id="section-local-library">
+        <h2 class="section__heading">Local Library</h2>
+        <div class="library-grid" id="grid-local-library" role="list"></div>
+      </section>
 
-    <!-- GRID -->
-    <div class="library-grid" id="grid" role="list" aria-label="Comics"></div>
+      <section class="section" id="section-mangadex">
+        <h2 class="section__heading">MangaDex Popular</h2>
+        <div class="library-grid" id="grid-mangadex" role="list"></div>
+      </section>
+    </div>
 
   </div><!-- /.l-page -->
 </main>

@@ -1,35 +1,41 @@
 'use strict';
 
 /* ── SKELETON ────────────────────────────────── */
-const grid = document.getElementById('grid');
-
-if (grid) {
-  (function renderSkeletons() {
-    grid.innerHTML = Array(12).fill(0).map(() => `
-      <div role="listitem" aria-hidden="true">
-        <div class="sk-cover sk-pulse"></div>
-        <div class="sk-body">
-          <div class="sk-line sk-line--md sk-pulse"></div>
-          <div class="sk-line sk-line--sm sk-pulse"></div>
-        </div>
-      </div>`).join('');
-  })();
-}
+(function renderSkeletons() {
+  const grids = ['grid-local-library', 'grid-mangadex'];
+  grids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerHTML = Array(6).fill(0).map(() => `
+        <div role="listitem" aria-hidden="true">
+          <div class="sk-cover sk-pulse"></div>
+          <div class="sk-body">
+            <div class="sk-line sk-line--md sk-pulse"></div>
+            <div class="sk-line sk-line--sm sk-pulse"></div>
+          </div>
+        </div>`).join('');
+    }
+  });
+})();
 
 /* ── STATE ───────────────────────────────────── */
 let allComics   = [];
-let activeFilter = 'all';
+let mangadexComics = [];
 
 /* ── LOAD ────────────────────────────────────── */
 async function loadLibrary() {
   try {
-    const res  = await fetch('/api/library');
-    allComics  = await res.json();
+    const [libRes, mdRes] = await Promise.all([
+      fetch('/api/library'),
+      fetch('/api/mangadex/popular')
+    ]);
+    allComics = await libRes.json();
+    mangadexComics = await mdRes.json();
   } catch (e) {
-    allComics  = [];
+    console.error("Failed to load library or mangadex", e);
   }
 
-  /* update hero stat — single source of truth */
+  /* update hero stat */
   const countEl = document.getElementById('stat-count');
   if (countEl) {
     countEl.textContent = allComics.length;
@@ -41,69 +47,62 @@ async function loadLibrary() {
 
 /* ── RENDER ──────────────────────────────────── */
 function render() {
+  renderGrid('grid-local-library', allComics);
+  renderGrid('grid-mangadex', mangadexComics);
+}
+
+function renderGrid(gridId, list) {
+  const grid = document.getElementById(gridId);
   if (!grid) return;
 
-  const list   = activeFilter === 'all'
-    ? allComics
-    : allComics.filter(c => c.type === activeFilter);
-
-  const shown  = list.length;
-  const total  = allComics.length;
-
-  /* filter count: only visible when a filter reduces the set */
-  const countEl = document.getElementById('filter-count');
-  if (countEl) {
-    if (activeFilter !== 'all') {
-      countEl.textContent = `${shown} of ${total}`;
-      countEl.classList.add('is-visible');
-    } else {
-      countEl.textContent = '';
-      countEl.classList.remove('is-visible');
-    }
-  }
-
-  /* empty state */
   if (!list.length) {
     grid.innerHTML = `
       <div class="empty-state" role="listitem">
         <div class="empty-state__icon">📂</div>
         <h2 class="empty-state__heading">Nothing here yet.</h2>
-        <p class="empty-state__body">
-          One-shot → <code>comics/my-comic/</code> (images inside)<br>
-          Series &nbsp;→ <code>comics/my-series/Ch.1/</code> (chapters)
-        </p>
       </div>`;
     return;
   }
 
-  /* cards */
   grid.innerHTML = list.map(c => {
-    const href  = c.type === 'series'
-      ? `/series/${c.dir_index}/${encodeURIComponent(c.rel_path)}`
-      : `/read/${c.dir_index}/${encodeURIComponent(c.rel_path)}`;
+    let href, meta, badgeClass, badgeLabel, cover;
 
-    const meta   = c.type === 'series'
-      ? `${c.chapters} ch.`
-      : `${c.pages} pg.`;
+    if (c.type === 'mangadex') {
+      href = `https://mangadex.org/title/${c.id}`;
+      meta = 'MangaDex';
+      badgeClass = 'card__badge card__badge--series';
+      badgeLabel = 'MangaDex';
+      cover = c.cover 
+        ? `<img src="${c.cover}" referrerpolicy="no-referrer" alt="" loading="lazy"/>`
+        : `<div class="no-cover" aria-hidden="true">📖</div>`;
+    } else {
+      href = c.type === 'series'
+        ? `/series/${c.dir_index}/${encodeURIComponent(c.rel_path)}`
+        : `/read/${c.dir_index}/${encodeURIComponent(c.rel_path)}`;
 
-    const badgeClass = c.type === 'series'
-      ? 'card__badge card__badge--series'
-      : 'card__badge';
-    const badgeLabel = c.type === 'series' ? 'Series' : 'One-shot';
+      meta = c.type === 'series'
+        ? `${c.chapters} ch.`
+        : `${c.pages} pg.`;
 
-    const cover = c.cover
-      ? `<img src="${c.cover}" alt="" loading="lazy"/>`
-      : `<div class="no-cover" aria-hidden="true">📖</div>`;
+      badgeClass = c.type === 'series'
+        ? 'card__badge card__badge--series'
+        : 'card__badge';
+      badgeLabel = c.type === 'series' ? 'Series' : 'One-shot';
+
+      cover = c.cover
+        ? `<img src="${c.cover}" alt="" loading="lazy"/>`
+        : `<div class="no-cover" aria-hidden="true">📖</div>`;
+    }
 
     return `
       <article class="card" role="listitem">
-        <a href="${href}" aria-label="${escHtml(c.name)} — ${badgeLabel}, ${meta}">
+        <a href="${href}" ${c.type === 'mangadex' ? 'target="_blank"' : ''} aria-label="${escHtml(c.title || c.name)}">
           <div class="card__cover">
             ${cover}
             <span class="${badgeClass}" aria-hidden="true">${badgeLabel}</span>
           </div>
           <div class="card__body">
-            <div class="card__title">${escHtml(c.name)}</div>
+            <div class="card__title">${escHtml(c.title || c.name)}</div>
             <div class="card__meta">${meta}</div>
           </div>
         </a>
@@ -121,20 +120,6 @@ function render() {
     }));
   });
 }
-
-/* ── FILTER CHIPS ────────────────────────────── */
-document.querySelectorAll('.chip').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.chip').forEach(b => {
-      b.classList.remove('is-active');
-      b.setAttribute('aria-pressed', 'false');
-    });
-    btn.classList.add('is-active');
-    btn.setAttribute('aria-pressed', 'true');
-    activeFilter = btn.dataset.filter;
-    render();
-  });
-});
 
 /* ── UTIL ────────────────────────────────────── */
 function escHtml(str) {

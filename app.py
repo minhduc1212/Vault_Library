@@ -8,6 +8,7 @@ import qrcode
 from flask import Response
 from flask_cloudflared import run_with_cloudflared, get_cloudflared_url
 from models import Database, initialize_database
+import requests
 
 app = Flask(__name__)
 
@@ -440,10 +441,51 @@ def api_tunnel_qr():
     return Response(buf.getvalue(), mimetype="image/png")
 
 
+@app.route("/api/mangadex/popular")
+def get_popular_mangadex():
+    url = "https://api.mangadex.org/manga"
+    params = {
+        "limit": 12,
+        "order[followedCount]": "desc",
+        "hasAvailableChapters": "true",
+        "includes[]": ["author", "cover_art"]
+    }
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        results = []
+        for manga in data.get("data", []):
+            manga_id = manga["id"]
+            attributes = manga.get("attributes", {})
+            title_obj = attributes.get("title", {})
+            title = title_obj.get("en") or next(iter(title_obj.values())) if title_obj else "Unknown"
+            
+            cover_file = None
+            for rel in manga.get("relationships", []):
+                if rel["type"] == "cover_art" and "attributes" in rel:
+                    cover_file = rel["attributes"].get("fileName")
+                    break
+            
+            cover_url = f"https://uploads.mangadex.org/covers/{manga_id}/{cover_file}.512.jpg" if cover_file else None
+            
+            results.append({
+                "id": manga_id,
+                "title": title,
+                "cover": cover_url,
+                "type": "mangadex"
+            })
+            
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error fetching from MangaDex: {e}")
+        return jsonify([])
+
 if __name__ == "__main__":
     for d in COMICS_DIRS:
         d.mkdir(parents=True, exist_ok=True)
     logger.info(f"[books]  Comics dirs : {[str(d) for d in COMICS_DIRS]}")
     logger.info(f"[web]  Open        : http://localhost:5000")
     run_with_cloudflared(app)
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
