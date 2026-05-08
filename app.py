@@ -487,5 +487,9 @@ if __name__ == "__main__":
         d.mkdir(parents=True, exist_ok=True)
     logger.info(f"[books]  Comics dirs : {[str(d) for d in COMICS_DIRS]}")
     logger.info(f"[web]  Open        : http://localhost:5000")
-    run_with_cloudflared(app)
+    
+    # Only run cloudflared in the main process, not the reloader child
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        run_with_cloudflared(app)
+        
     app.run(host="0.0.0.0", port=5000, debug=True)
