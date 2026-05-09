@@ -57,12 +57,6 @@ body  {
   text-decoration: none;
   color         : var(--ink);
 }
-.site-header__tag {
-  font-family   : 'Syne Mono', monospace;
-  font-size     : 10px;
-  color         : var(--muted);
-  letter-spacing: .06em;
-}
 
 /* header actions group */
 .site-header__actions {

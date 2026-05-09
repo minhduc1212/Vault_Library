@@ -1,14 +1,32 @@
 'use strict';
 
+const isEpub = readPath.toLowerCase().endsWith('.epub');
 const parts = readPath.split('/');
 const title = decodeURIComponent(parts[parts.length - 1]);
 
 const isChapter = parts.length > 1;
 const seriesName = isChapter ? parts[0] : null;
 
-const displayTitle = isChapter ? `${decodeURIComponent(seriesName)} — ${title}` : title;
-const hudTitleEl = document.getElementById('hud-title');
-if (hudTitleEl) hudTitleEl.textContent = displayTitle;
+function setupHeader() {
+  const hudTitleEl = document.getElementById('hud-title');
+  const hudChapterEl = document.getElementById('hud-chapter');
+  if (!hudTitleEl) return;
+
+  if (isChapter) {
+    hudTitleEl.textContent = decodeURIComponent(seriesName);
+    hudTitleEl.href = `/series/${dirIndex}/${encodeURIComponent(seriesName)}`;
+    if (hudChapterEl) hudChapterEl.textContent = title;
+  } else {
+    hudTitleEl.textContent = title;
+    if (isEpub) {
+        const encodedPath = readPath.split('/').map(encodeURIComponent).join('/');
+        hudTitleEl.href = `/epub/${dirIndex}/${encodedPath}`;
+    } else {
+        hudTitleEl.href = `/oneshot/${dirIndex}/${encodeURIComponent(readPath)}`;
+    }
+    if (hudChapterEl) hudChapterEl.textContent = '';
+  }
+}
 
 function setCookie(name, value, days) {
   const d = new Date();
@@ -30,7 +48,6 @@ let chapters = [];
 let currentChapIndex = -1;
 let scrollChapTimer = null;
 
-const isEpub = readPath.toLowerCase().endsWith('.epub');
 let currentEpubIndex = 0;
 let epubFontSize = parseInt(getCookie('epub_font_size')) || 18;
 let epubFontFamily = getCookie('epub_font_family') || "'Syne', sans-serif";
@@ -50,7 +67,7 @@ function toggleChList() {
   if (modal.classList.contains('active')) {
     setTimeout(() => {
       const activeItem = document.querySelector('.ch-item.active');
-      if (activeItem) activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (activeItem) activeItem.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }, 100);
   }
 }
@@ -114,6 +131,7 @@ function buildChList() {
 
 // ── INIT ────────────────────────────────────────────────────
 async function init() {
+  setupHeader();
   if (isEpub) {
     return initEpub();
   }
@@ -174,6 +192,7 @@ async function initEpub() {
     canvas.classList.add('epub-mode');
   }
 
+  // Load entire EPUB blob
   const epubUrl = `/img/${dirIndex}/${readPath.split('/').map(encodeURIComponent).join('/')}`;
   book = ePub(epubUrl);
   
@@ -188,8 +207,8 @@ async function initEpub() {
   rendition = book.renderTo("epub-content", {
     width: "100%",
     height: "100%",
-    flow: mode === 'scroll' ? "scrolled" : "paginated",
-    manager: mode === 'scroll' ? "continuous" : "default"
+    flow: mode === 'scroll' ? "scrolled-doc" : "paginated",
+    manager: "default"
   });
 
   let displayPromise;
@@ -296,12 +315,14 @@ async function initEpub() {
         }
     });
     
-    // Inject minimal scrollbar style into iframe
+    // Inject minimalist scrollbar style into iframe
     const style = view.document.createElement('style');
     style.innerHTML = `
-        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        ::-webkit-scrollbar-corner { background: transparent; display: none; }
         body { 
             padding: 10px 370px !important; 
             margin: 0 !important;
@@ -320,37 +341,6 @@ async function initEpub() {
         }
     `;
     view.document.head.appendChild(style);
-
-    // Auto-chapter transition in scroll mode
-    if (mode === 'scroll') {
-        const scroller = view.document.scrollingElement || view.document.body;
-        let lastScroll = 0;
-        let transitionTimeout = null;
-
-        view.window.addEventListener('scroll', () => {
-            if (transitionTimeout) return;
-
-            const st = scroller.scrollTop;
-            const sh = scroller.scrollHeight;
-            const ch = scroller.clientHeight;
-
-            // At bottom -> next chapter
-            if (st + ch >= sh - 10 && st > lastScroll) {
-                transitionTimeout = setTimeout(() => {
-                    rendition.next();
-                    transitionTimeout = null;
-                }, 300);
-            }
-            // At top -> prev chapter
-            else if (st <= 10 && st < lastScroll && st === 0) {
-                transitionTimeout = setTimeout(() => {
-                    rendition.prev();
-                    transitionTimeout = null;
-                }, 300);
-            }
-            lastScroll = st;
-        });
-    }
   });
 
   const keyHint = document.getElementById('key-hint');
@@ -468,6 +458,7 @@ function navigateToChapter(idx) {
 
 // ── HUD ─────────────────────────────────────────────────────
 function updateHud() {
+  const hudChapterEl = document.getElementById('hud-chapter');
   if (isEpub) {
     if (rendition && rendition.location) {
         const counter = document.getElementById('hud-counter');
@@ -482,12 +473,28 @@ function updateHud() {
                 counter.textContent = percent > 0 ? `${percent}%` : "Reading";
             }
         }
+        
+        // Update chapter title for EPUB if possible
+        if (book.navigation && book.navigation.toc && currentEpubIndex >= 0) {
+            const flatToc = [];
+            const flatten = (items) => {
+                items.forEach(i => {
+                    flatToc.push(i);
+                    if (i.subitems) flatten(i.subitems);
+                });
+            };
+            flatten(book.navigation.toc);
+            if (flatToc[currentEpubIndex] && hudChapterEl) {
+                hudChapterEl.textContent = flatToc[currentEpubIndex].label;
+            }
+        }
     }
     showHud();
     return;
   }
   const counter = document.getElementById('hud-counter');
   if (counter) counter.textContent = `${current + 1} / ${pages.length}`;
+  if (hudChapterEl) hudChapterEl.textContent = title;
 
   const hasPrev = current > 0 || currentChapIndex > 0;
   const hasNext = current < pages.length - 1 || (currentChapIndex >= 0 && currentChapIndex < chapters.length - 1);
@@ -528,10 +535,10 @@ function showHud() {
     }
   }
 
+  // Top bar always visible, no timeout
   clearTimeout(hudTimer);
   if (mode === 'page') {
     hudTimer = setTimeout(() => {
-      if (hud) hud.classList.add('hidden');
       if (bottomHud) bottomHud.classList.add('hidden');
     }, 2800);
   }
@@ -595,8 +602,7 @@ function setMode(m) {
       if (btnScroll) btnScroll.classList.toggle('active', m === 'scroll');
       
       if (rendition) {
-          rendition.flow(m === 'scroll' ? "scrolled" : "paginated");
-          rendition.manager(m === 'scroll' ? "continuous" : "default");
+          rendition.flow(m === 'scroll' ? "scrolled-doc" : "paginated");
           const loc = rendition.currentLocation();
           if (loc && loc.start) {
               rendition.display(loc.start.cfi);
@@ -632,6 +638,8 @@ function setMode(m) {
       if (targetIndex > 0) {
         const el = scrollWrap.querySelectorAll('.scroll-page')[targetIndex];
         if (el) el.scrollIntoView({ behavior:'smooth' });
+      } else {
+        canvas.scrollTop = 0;
       }
     }, 100);
     const hud = document.getElementById('hud');

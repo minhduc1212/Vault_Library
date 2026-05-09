@@ -11,9 +11,12 @@
  - back to comic page when click to back in reader [Done]
  - chapter list in reader [Done]
  - reader from mangadex: divide to local and other site(the other site will list the popular titles)[Done]
-  
- - using epubjs to read epub, parser, analyze in client side, create page for the epub to show metadata of epub like author, des, image of novel, list of chapter, delete all epub parser in backend, still having flow mode and page mode, change font, change color of text(default is white because the background is black) cause epub can be the novel, comic, manga,...
- - scroll is error when in the top? can use it because the button "scroll" in next or the div that layer to the scroll
+ - using epubjs to read epub, parser, analyze in client side, create page for the epub to show metadata of epub like author, des, image of novel, list of chapter, delete all epub parser in backend, still having flow mode and page mode, change font, change color of text(default is white because the background is black) cause epub can be the novel, comic, manga,...[Done]
+ - scroll is error when in the top? can use it because the button "scroll" in next or the div that layer to the scroll[Done]
+ - load 1 page only in epub, back to the homepage
+
+ - epubjs -> shit -> just use it to convert to html -> use html to show 
+ - next use mouse click to left, right to go next page, next chapter
  - add pdf, txt -> do like epubreader or calibre (divide bt chapter,...)
  - add cache
  - comix.to: token gen -> playwright wait for request from user -> go to page -> get url with token (tokens are diff between chapter and manga) -> download and save to db for the next request (get faster dont need to playwright) -> send to frontend + crawl bot daily

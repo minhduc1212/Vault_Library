@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Vault Library — One-shot{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/series.css') }}">
+<style>
+    .hero-description {
+        margin-top: 16px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--ink);
+        opacity: 0.8;
+        max-width: 800px;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .hero-description.expanded {
+        -webkit-line-clamp: unset;
+    }
+    .read-more {
+        cursor: pointer;
+        color: var(--muted);
+        font-family: 'Syne Mono', monospace;
+        font-size: 10px;
+        text-transform: uppercase;
+        margin-top: 8px;
+        display: inline-block;
+    }
+    .genre-tag {
+        display: inline-block;
+        padding: 4px 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 11px;
+        color: var(--muted);
+        margin-right: 6px;
+        margin-bottom: 6px;
+        font-family: 'Syne Mono', monospace;
+    }
+    .genres-wrap {
+        margin-top: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- TOPBAR -->
+<nav class="topbar" aria-label="Site navigation">
+  <div class="topbar__inner">
+    <a class="topbar__back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+      Back to Library
+    </a>
+    <a class="topbar__brand" href="/">Vault Library</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero-wrap">
+  <div class="hero-bg" id="hero-bg" aria-hidden="true"></div>
+
+  <div class="hero-content">
+    <!-- Cover -->
+    <div class="hero-cover" id="cover-wrap" aria-hidden="true">
+      <div class="sk" style="position:absolute;inset:0;border-radius:6px;"></div>
+    </div>
+
+    <!-- Info -->
+    <div class="hero-info">
+      <p class="hero-eyebrow" aria-hidden="true">One-shot</p>
+      <h1 class="hero-title" id="title">Loading…</h1>
+
+      <!-- Stats row -->
+      <div class="stats-row" id="stats-row" aria-label="Comic info">
+        <!-- filled by JS -->
+      </div>
+
+      <!-- Genres -->
+      <div class="genres-wrap" id="genres">
+          <!-- filled by JS -->
+      </div>
+
+      <!-- Description -->
+      <div class="hero-description" id="description"></div>
+      <div class="read-more" id="read-more" style="display:none;">Read More</div>
+
+      <!-- CTA -->
+      <div style="margin-top: 32px;">
+          <a class="btn-read" id="btn-read" href="#">
+            Read Now
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const dirIndex = {{ dir_index }};
+    const oneshotPath = "{{ oneshot_path }}";
+</script>
+<script src="{{ url_for('static', filename='js/oneshot.js') }}"></script>
+{% endblock %}

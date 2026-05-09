@@ -384,11 +384,16 @@ def serve_image(dir_index, rel):
                 
                 # Mimetype detection
                 ext = Path(internal_path).suffix.lower()
-                mimetype = "image/jpeg"
-                if ext == ".png": mimetype = "image/png"
-                elif ext == ".webp": mimetype = "image/webp"
-                elif ext == ".gif": mimetype = "image/gif"
-                elif ext == ".svg": mimetype = "image/svg+xml"
+                mimes = {
+                    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                    ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+                    ".htm": "text/html", ".html": "text/html", ".xhtml": "application/xhtml+xml",
+                    ".xml": "application/xml", ".css": "text/css", ".js": "application/javascript",
+                    ".json": "application/json", ".opf": "application/oebps-package+xml",
+                    ".ncx": "application/x-dtbncx+xml", ".ttf": "font/ttf", ".otf": "font/otf",
+                    ".woff": "font/woff", ".woff2": "font/woff2", ".txt": "text/plain"
+                }
+                mimetype = mimes.get(ext, "application/octet-stream")
                 
                 return Response(data, mimetype=mimetype)
         except Exception as e:
@@ -443,6 +448,60 @@ def serve_file(dir_index, rel):
 @app.route("/read/<int:dir_index>/<path:read_path>")
 def reader(dir_index, read_path):
     return render_template("reader.html", dir_index=dir_index, read_path=read_path)
+
+
+@app.route("/api/comic/<int:dir_index>/<path:comic_path>")
+def api_comic_metadata(dir_index, comic_path):
+    # Try to find in DB first
+    # This is a bit tricky because comic_path might be relative or absolute-ish
+    # But we can try to match the path string
+    
+    rows = db.execute_query(
+        "SELECT id, title, author, genres, description, cover_image, path, type, pages, chapters FROM comics"
+    )
+    
+    # Matching logic similar to api_library
+    for row in rows:
+        comic_id, title, author, genres, description, cover_image, path_str, comic_type, pages, chapters = row
+        cp = Path(path_str)
+        
+        match = False
+        if dir_index >= 10000:
+            if comic_id == dir_index - 10000:
+                match = True
+        else:
+            if dir_index < len(COMICS_DIRS):
+                root = COMICS_DIRS[dir_index]
+                try:
+                    if cp.is_relative_to(root) and cp.relative_to(root).as_posix() == comic_path:
+                        match = True
+                except:
+                    pass
+        
+        if match:
+            entry = {
+                "id": comic_id,
+                "title": title,
+                "author": author or "",
+                "genres": genres or "",
+                "description": description or "",
+                "type": comic_type or "oneshot",
+                "pages": pages or 0,
+                "chapters": chapters or 0,
+                "cover_path": cover_image,
+                "dir_index": dir_index,
+                "rel_path": comic_path,
+            }
+            if cover_image:
+                entry["cover"] = f"/img/{dir_index}/{comic_path}/{cover_image}"
+            return jsonify(entry)
+            
+    abort(404)
+
+
+@app.route("/oneshot/<int:dir_index>/<path:oneshot_path>")
+def oneshot(dir_index, oneshot_path):
+    return render_template("oneshot.html", dir_index=dir_index, oneshot_path=oneshot_path)
 
 
 @app.route("/series/<int:dir_index>/<path:series_path>")
@@ -591,16 +650,14 @@ if __name__ == "__main__":
     logger.info(f"[books]  Comics dirs : {[str(d) for d in COMICS_DIRS]}")
     logger.info(f"[web]  Open        : http://localhost:5000")
     
-    # Try to run cloudflared, but don't let it crash the app if it fails
-    # Use environment variable DISABLE_TUNNEL=1 to skip
+    # Try to start Cloudflare tunnel safely
     if os.environ.get("DISABLE_TUNNEL") != "1":
         try:
-            # Only start tunnel in the main process (not the reloader's child if debug is on)
-            # or let flask-cloudflared handle its internal logic.
-            # Wrapping it here to provide a clearer warning.
-            logger.info("Starting Cloudflare tunnel (this may take a moment)...")
+            logger.info("Initializing Cloudflare tunnel...")
+            # If you have cloudflared.exe in the project folder, this is much more stable on Windows
             run_with_cloudflared(app)
         except Exception as e:
-            logger.warning(f"Cloudflare tunnel could not be started: {e}. You can still access the app locally.")
-        
+            logger.error(f"Cloudflare tunnel failed to start: {e}")
+            logger.info("The app is still running locally at http://localhost:5000")
+    
     app.run(host="0.0.0.0", port=5000, debug=True)

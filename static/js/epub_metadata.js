@@ -1,7 +1,8 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const epubUrl = `/img/${dirIndex}/${relPath.split('/').map(encodeURIComponent).join('/')}`;
+    // Thêm dấu '/' ở cuối để ép epub.js load theo chế độ "unzipped API", chỉ gọi các file metadata cần thiết
+    const epubUrl = `/img/${dirIndex}/${relPath.split('/').map(encodeURIComponent).join('/')}/`;
     const book = ePub(epubUrl);
     
     try {

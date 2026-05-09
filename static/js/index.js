@@ -76,13 +76,17 @@ function renderGrid(gridId, list) {
         ? `<img src="${c.cover}" referrerpolicy="no-referrer" alt="" loading="lazy"/>`
         : `<div class="no-cover" aria-hidden="true">📖</div>`;
     } else {
-      href = c.type === 'series'
-        ? `/series/${c.dir_index}/${encodeURIComponent(c.rel_path)}`
-        : `/read/${c.dir_index}/${encodeURIComponent(c.rel_path)}`;
-
-      if (c.type === 'epub') {
+      if (c.type === 'series') {
+        href = `/series/${c.dir_index}/${encodeURIComponent(c.rel_path)}`;
+      } else if (c.type === 'epub') {
         const encodedPath = c.rel_path.split('/').map(encodeURIComponent).join('/');
         href = `/epub/${c.dir_index}/${encodedPath}`;
+      } else {
+        // oneshot
+        href = `/oneshot/${c.dir_index}/${encodeURIComponent(c.rel_path)}`;
+      }
+
+      if (c.type === 'epub') {
         meta = 'EPUB';
         badgeClass = 'card__badge card__badge--epub';
         badgeLabel = 'EPUB';
