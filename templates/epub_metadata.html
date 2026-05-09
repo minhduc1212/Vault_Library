@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}EPUB Metadata{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/series.css') }}">
+<style>
+    .hero-description {
+        margin-top: 16px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--ink-2);
+        max-width: 800px;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .hero-description.expanded {
+        -webkit-line-clamp: unset;
+    }
+    .read-more {
+        cursor: pointer;
+        color: var(--muted);
+        font-family: 'Syne Mono', monospace;
+        font-size: 10px;
+        text-transform: uppercase;
+        margin-top: 8px;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+  <div class="topbar__inner">
+    <a class="topbar__back" href="/">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Library
+    </a>
+    <a class="topbar__brand" href="/">Vault Library</a>
+    <div style="width: 80px"></div>
+  </div>
+</div>
+
+<div class="hero-wrap">
+  <div class="hero-bg" id="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-cover" id="hero-cover-wrap">
+      <div id="cover-placeholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--border-lt); color:var(--muted); font-size:32px;">📖</div>
+    </div>
+    <div class="hero-info">
+      <div class="hero-eyebrow">EPUB NOVEL</div>
+      <h1 class="hero-title" id="epub-title">Loading...</h1>
+      <div class="stats-row">
+        <div class="stat-pill">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <strong id="epub-author">—</strong>
+        </div>
+        <div class="stat-pill">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <strong id="epub-chapters-count">—</strong>&nbsp;Chapters
+        </div>
+      </div>
+      <a href="/read/{{ dir_index }}/{{ rel_path }}" class="btn-read">
+        Start Reading
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <div class="hero-description" id="epub-description"></div>
+      <div class="read-more" id="read-more" style="display:none;">Read More</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-header">
+  <h2>Table of Contents</h2>
+  <div class="chapter-count-tag" id="toc-count">0 Chapters</div>
+</div>
+
+<div class="chapter-grid" id="toc-grid">
+    <!-- TOC items will be injected here -->
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+<script>
+    const dirIndex = {{ dir_index }};
+    const relPath = "{{ rel_path }}";
+    const epubUrl = `/img/${dirIndex}/${encodeURIComponent(relPath)}`;
+</script>
+<script src="{{ url_for('static', filename='js/epub_metadata.js') }}"></script>
+{% endblock %}

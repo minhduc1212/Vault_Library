@@ -24,7 +24,7 @@
     <button class="hud-btn ch-btn" id="next-ch-btn" title="Next chapter">»</button>
 
     <!-- CHAPTER LIST DROPDOWN -->
-    <div id="ch-list-modal">
+    <div id="ch-list-modal" class="nav-modal">
       <div class="ch-modal-content">
         <div class="ch-modal-header">
           <h3>Chapters</h3>
@@ -38,6 +38,34 @@
     <button class="mode-btn active" id="btn-page" onclick="setMode('page')">PAGE</button>
     <button class="mode-btn" id="btn-scroll" onclick="setMode('scroll')">SCROLL</button>
   </div>
+
+  <!-- EPUB SETTINGS -->
+  <div id="epub-settings" style="display:none; margin-left: 10px; gap: 8px; align-items: center;">
+    <div class="ch-nav-wrap">
+      <button class="hud-btn" id="font-list-btn" title="Font Settings" onclick="toggleFontList()" style="width: auto; border-radius: 4px; padding: 0 8px; font-size: 11px; font-family: 'Syne Mono', monospace;">Aa</button>
+      
+      <!-- FONT LIST DROPDOWN -->
+      <div id="font-list-modal" class="nav-modal">
+        <div class="ch-modal-content" style="width: 180px;">
+          <div class="ch-modal-header">
+            <h3>Typography</h3>
+          </div>
+          <div class="ch-modal-body">
+            <div class="ch-item font-option active" onclick="selectFont('\'Syne\', sans-serif', this)" style="font-family: 'Syne', sans-serif;">Sans-serif</div>
+            <div class="ch-item font-option" onclick="selectFont('\'Georgia\', serif', this)" style="font-family: 'Georgia', serif;">Serif</div>
+            <div class="ch-item font-option" onclick="selectFont('\'Syne Mono\', monospace', this)" style="font-family: 'Syne Mono', monospace;">Mono</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:4px; border:1.5px solid var(--border); border-radius:4px; padding: 2px 6px;">
+      <button onclick="changeFontSize(-1)" class="mode-btn" style="padding: 2px 8px;">A-</button>
+      <span id="font-size-val" style="font-family: 'Syne Mono', monospace; font-size: 11px; min-width: 20px; text-align: center;">18</span>
+      <button onclick="changeFontSize(1)" class="mode-btn" style="padding: 2px 8px;">A+</button>
+    </div>
+    <input type="color" id="text-color" value="#FFFFFF" onchange="updateEpubStyle()" style="width: 24px; height: 24px; padding: 0; border: 1.5px solid var(--border); border-radius: 4px; background: none; cursor: pointer;">
+  </div>
 </div>
 
 <!-- CANVAS -->
@@ -48,6 +76,7 @@
     <div id="zone-next"></div>
   </div>
   <div id="scroll-wrap"></div>
+  <div id="epub-content" style="display:none;"></div>
 </div>
 
 <!-- BOTTOM HUD -->
@@ -57,10 +86,11 @@
   <button class="nav-btn" id="next-btn2" title="→">›</button>
 </div>
 
-<div id="key-hint">← → ARROW KEYS &nbsp;|&nbsp; SPACE TO ADVANCE</div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
 <script>
     const dirIndex = {{ dir_index }};
     const readPath = "{{ read_path }}";

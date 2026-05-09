@@ -89,7 +89,7 @@ body {
   display: grid;
   grid-template-columns: 140px 1fr;
   gap: 32px;
-  align-items: flex-end;
+  align-items: start;
 }
 
 .hero-cover {

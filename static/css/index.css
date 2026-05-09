@@ -348,6 +348,7 @@ body  {
   color         : #fff;
 }
 .card__badge--series { background: rgba(214,43,31,.8); }
+.card__badge--epub   { background: rgba(31,114,214,.8); }
 
 .card__body {
   padding   : 10px 2px 0;

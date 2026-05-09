@@ -80,14 +80,22 @@ function renderGrid(gridId, list) {
         ? `/series/${c.dir_index}/${encodeURIComponent(c.rel_path)}`
         : `/read/${c.dir_index}/${encodeURIComponent(c.rel_path)}`;
 
-      meta = c.type === 'series'
-        ? `${c.chapters} ch.`
-        : `${c.pages} pg.`;
+      if (c.type === 'epub') {
+        const encodedPath = c.rel_path.split('/').map(encodeURIComponent).join('/');
+        href = `/epub/${c.dir_index}/${encodedPath}`;
+        meta = 'EPUB';
+        badgeClass = 'card__badge card__badge--epub';
+        badgeLabel = 'EPUB';
+      } else {
+        meta = c.type === 'series'
+          ? `${c.chapters} ch.`
+          : `${c.pages} pg.`;
 
-      badgeClass = c.type === 'series'
-        ? 'card__badge card__badge--series'
-        : 'card__badge';
-      badgeLabel = c.type === 'series' ? 'Series' : 'One-shot';
+        badgeClass = c.type === 'series'
+          ? 'card__badge card__badge--series'
+          : 'card__badge';
+        badgeLabel = c.type === 'series' ? 'Series' : 'One-shot';
+      }
 
       cover = c.cover
         ? `<img src="${c.cover}" alt="" loading="lazy"/>`

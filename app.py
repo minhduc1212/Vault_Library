@@ -9,6 +9,7 @@ from flask import Response
 from flask_cloudflared import run_with_cloudflared, get_cloudflared_url
 from models import Database, initialize_database
 import requests
+import zipfile
 
 app = Flask(__name__)
 
@@ -40,7 +41,7 @@ def _add_comics_from_dir(root: Path) -> int:
         return 0
     count = 0
     logger.info(f"Scanning directory for comics: {root}")
-    for child in sorted(p for p in root.iterdir() if not p.name.startswith('.') and p.is_dir()):
+    for child in sorted(p for p in root.iterdir() if not p.name.startswith('.') and (p.is_dir() or p.suffix.lower() == '.epub')):
         meta = scan_entry(child)
         if meta is None:
             continue
@@ -97,7 +98,35 @@ def is_image(p: Path) -> bool:
 
 
 def scan_entry(path: Path) -> dict | None:
-    """Return metadata for one comic entry (folder or one-shot dir)."""
+    """Return metadata for one comic entry (folder or epub file)."""
+    if path.is_file() and path.suffix.lower() == '.epub':
+        cover_path = ""
+        try:
+            with zipfile.ZipFile(path, 'r') as z:
+                # 1. Try standard names in Zip
+                for name in z.namelist():
+                    name_low = name.lower()
+                    if "cover" in name_low and any(name_low.endswith(ext) for ext in IMAGE_EXTS):
+                        cover_path = name
+                        break
+                
+                # 2. Just take the first image if it's in a likely folder
+                if not cover_path:
+                    for name in z.namelist():
+                        if any(name.lower().endswith(ext) for ext in IMAGE_EXTS):
+                            cover_path = name
+                            break
+        except Exception as e:
+            logger.error(f"Error scanning EPUB {path}: {e}")
+
+        return {
+            "name": path.stem,
+            "type": "epub",
+            "pages": 0,
+            "chapters": 0,
+            "cover_path": cover_path,
+        }
+
     if not path.is_dir():
         return None
 
@@ -313,6 +342,80 @@ def serve_image(dir_index, rel):
     if dir_index >= 10000:
         comic_id = dir_index - 10000
         rows = db.execute_query("SELECT path FROM comics WHERE id = ?", (comic_id,))
+        if not rows: abort(404)
+        comic_base = Path(rows[0][0])
+    else:
+        if dir_index >= len(COMICS_DIRS): abort(404)
+        comic_base = COMICS_DIRS[dir_index]
+
+    parts = Path(rel).parts
+    epub_path = None
+    internal_path = None
+    
+    # Identify if the request is for a file inside an EPUB
+    for i in range(len(parts)):
+        p = Path(*parts[:i+1])
+        full_p = comic_base / p
+        if full_p.suffix.lower() == ".epub" and full_p.is_file():
+            epub_path = full_p
+            internal_path = "/".join(parts[i+1:]).replace("\\", "/")
+            break
+            
+    if epub_path:
+        if not internal_path:
+            return send_file(epub_path)
+        try:
+            with zipfile.ZipFile(epub_path, 'r') as z:
+                # 1. Direct try
+                try:
+                    data = z.read(internal_path)
+                except KeyError:
+                    # 2. Fuzzy search (find by filename ignoring directory)
+                    filename = os.path.basename(internal_path)
+                    found_path = None
+                    for name in z.namelist():
+                        if name.endswith(filename):
+                            found_path = name
+                            break
+                    if found_path:
+                        data = z.read(found_path)
+                    else:
+                        abort(404)
+                
+                # Mimetype detection
+                ext = Path(internal_path).suffix.lower()
+                mimetype = "image/jpeg"
+                if ext == ".png": mimetype = "image/png"
+                elif ext == ".webp": mimetype = "image/webp"
+                elif ext == ".gif": mimetype = "image/gif"
+                elif ext == ".svg": mimetype = "image/svg+xml"
+                
+                return Response(data, mimetype=mimetype)
+        except Exception as e:
+            logger.error(f"Error serving image from ZIP: {e}")
+            abort(404)
+
+    # Standard image serving
+    full = comic_base / rel
+    if not full.is_file() or not is_image(full):
+        # try stripping first part if it's the comic folder name
+        if parts and parts[0] == comic_base.name:
+            full = comic_base / Path(*parts[1:])
+        if not full.is_file() or not is_image(full):
+            abort(404)
+    return send_file(full)
+
+
+@app.route("/epub/<int:dir_index>/<path:rel_path>")
+def epub_metadata(dir_index, rel_path):
+    return render_template("epub_metadata.html", dir_index=dir_index, rel_path=rel_path)
+
+
+@app.route("/file/<int:dir_index>/<path:rel>")
+def serve_file(dir_index, rel):
+    if dir_index >= 10000:
+        comic_id = dir_index - 10000
+        rows = db.execute_query("SELECT path FROM comics WHERE id = ?", (comic_id,))
         if not rows:
             abort(404)
         comic_base = Path(rows[0][0])
@@ -321,18 +424,18 @@ def serve_image(dir_index, rel):
             full = comic_base / Path(*parts[1:])
         else:
             full = comic_base / rel
-        if not full.is_file() or not is_image(full):
+        if not full.is_file():
             abort(404)
         return send_file(full)
     else:
         if dir_index >= len(COMICS_DIRS):
             abort(404)
         full = COMICS_DIRS[dir_index] / rel
-        if not full.is_file() or not is_image(full):
+        if not full.is_file():
             parts = Path(rel).parts
             if parts and parts[0] == COMICS_DIRS[dir_index].name:
                 full = COMICS_DIRS[dir_index] / Path(*parts[1:])
-            if not full.is_file() or not is_image(full):
+            if not full.is_file():
                 abort(404)
         return send_file(full)
 
@@ -488,8 +591,16 @@ if __name__ == "__main__":
     logger.info(f"[books]  Comics dirs : {[str(d) for d in COMICS_DIRS]}")
     logger.info(f"[web]  Open        : http://localhost:5000")
     
-    # Only run cloudflared in the main process, not the reloader child
-    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        run_with_cloudflared(app)
+    # Try to run cloudflared, but don't let it crash the app if it fails
+    # Use environment variable DISABLE_TUNNEL=1 to skip
+    if os.environ.get("DISABLE_TUNNEL") != "1":
+        try:
+            # Only start tunnel in the main process (not the reloader's child if debug is on)
+            # or let flask-cloudflared handle its internal logic.
+            # Wrapping it here to provide a clearer warning.
+            logger.info("Starting Cloudflare tunnel (this may take a moment)...")
+            run_with_cloudflared(app)
+        except Exception as e:
+            logger.warning(f"Cloudflare tunnel could not be started: {e}. You can still access the app locally.")
         
     app.run(host="0.0.0.0", port=5000, debug=True)
