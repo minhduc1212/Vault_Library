@@ -10,12 +10,13 @@
  - oneshot also has page to introduce the comic, like the series, but only one chapter, so the page will show the title, author, description, cover image, genres and a button to read the comic [Done]
  - back to comic page when click to back in reader [Done]
  - chapter list in reader [Done]
-
- - divide to local and other site(the other site will list the popular titles)
+ - reader from mangadex: divide to local and other site(the other site will list the popular titles)[Done]
+  
+ - add epub, pdf, txt
+ - comix.to: token gen -> playwright wait for request from user -> go to page -> get url with token (tokens are diff between chapter and manga) -> download and save to db for the next request (get faster dont need to playwright) -> send to frontend + crawl bot daily
  - add download to the local
- - reader from many web:    , ...
  - add user, login and permission to add comics, only admin can add comics, other users can only read comics or if user add comics, it means that the comics will be added to the server of admin, and other users can read the comics from the server of admin, but they cannot add comics to their own library, they can only read comics from the server of admin
- - add epub, pdf, ...
+
  
  
  - 3 mode:  user can clone the project and share the comics to the others 
@@ -23,3 +24,13 @@
             or share p2p, it likes a torrent, the peoples who share will create an network to share the comics
  - db for the comics: title, author, description, cover image, tags
  - add defalt cover for the comics that have no cover image
+  
+
+# comix.to api
+url = https://comix.to/title/pvry-one-piece/5672695-chapter-1
+request_url = https://comix.to/api/v1/chapters/5672695_=bemJ-0y5bduXT9upsFZyqV4s6RO7JKSqdGy_wtVw2MsEpRV3yl8xub6LeSndTetSnv7NDx1n
+token = bemJ-0y5bduXT9upsFZyqV4s6RO7JKSqdGy_wtVw2MsEpRV3yl8xub6LeSndTetSnv7NDx1n
+referer = https://comix.to/title/pvry-one-piece/5672695-chapter-1
+
+https://comix.to/api/v1/chapters/5672715?_=bemJ-0y5bduXT9upsFZyqV4s6RO7JKSqdGy_wtVw2MsEpRV3yl8xub6LeSndTetSnv7NDg1n
+token = bemJ-0y5bduXT9upsFZyqV4s6RO7JKSqdGy_wtVw2MsEpRV3yl8xub6LeSndTetSnv7NDg1n
