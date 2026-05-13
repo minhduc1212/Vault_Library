@@ -2,7 +2,7 @@
 
 Vault Library is a personal, visually-rich web application for managing and reading your local collection of comics, manga, and eBooks (EPUB, PDF). Designed for both private use and **easy sharing with friends**, it features a built-in MangaDex integration and an automatic Cloudflare tunnel, allowing you to open your vault to the world with a single click or QR scan.
 
-![Vault Library Preview](img\homepage.png) *(Placeholder: Add a screenshot of your app here)*
+![Vault Library Preview](img/homepage.png) 
 
 ## 🚀 Features
 
