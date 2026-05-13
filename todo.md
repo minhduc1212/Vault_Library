@@ -13,15 +13,20 @@
  - reader from mangadex: divide to local and other site(the other site will list the popular titles)[Done]
  - using epubjs to read epub, parser, analyze in client side, create page for the epub to show metadata of epub like author, des, image of novel, list of chapter, delete all epub parser in backend, still having flow mode and page mode, change font, change color of text(default is white because the background is black) cause epub can be the novel, comic, manga,...[Done]
  - scroll is error when in the top? can use it because the button "scroll" in next or the div that layer to the scroll[Done]
- - load 1 page only in epub, back to the homepage
+ - back to the homepage from reading[Done]
+ - add read mangadex, search, ...[Done]
 
  - epubjs -> shit -> just use it to convert to html -> use html to show 
- - next use mouse click to left, right to go next page, next chapter
+ - 1 page in epub
+ - next use mouse click to left, right to go prev page, chapter, next chapter, page
  - add pdf, txt -> do like epubreader or calibre (divide bt chapter,...)
  - add cache
  - comix.to: token gen -> playwright wait for request from user -> go to page -> get url with token (tokens are diff between chapter and manga) -> download and save to db for the next request (get faster dont need to playwright) -> send to frontend + crawl bot daily
  - add download to the local
  - add user, login and permission to add comics, only admin can add comics, other users can only read comics or if user add comics, it means that the comics will be added to the server of admin, and other users can read the comics from the server of admin, but they cannot add comics to their own library, they can only read comics from the server of admin
+ - admin, user: local + upload to server (server + client ver)
+ - p2p ver
+ - more detailed plan
  - user add comic to read local
 
  

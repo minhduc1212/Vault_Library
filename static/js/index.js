@@ -45,6 +45,42 @@ async function loadLibrary() {
   render();
 }
 
+/* ── SEARCH ──────────────────────────────────── */
+async function searchMangaDex() {
+  const input = document.getElementById('search-input');
+  const query = input.value.trim();
+  if (!query) return;
+
+  const mdSection = document.getElementById('section-mangadex');
+  const mdHeading = mdSection.querySelector('.section__heading');
+  mdHeading.textContent = `Search Results for "${query}"`;
+
+  // Show skeletons
+  const grid = document.getElementById('grid-mangadex');
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div role="listitem" aria-hidden="true">
+      <div class="sk-cover sk-pulse"></div>
+      <div class="sk-body">
+        <div class="sk-line sk-line--md sk-pulse"></div>
+        <div class="sk-line sk-line--sm sk-pulse"></div>
+      </div>
+    </div>`).join('');
+
+  try {
+    const res = await fetch(`/api/mangadex/search?q=${encodeURIComponent(query)}`);
+    mangadexComics = await res.json();
+    renderGrid('grid-mangadex', mangadexComics);
+    mdSection.scrollIntoView({ behavior: 'smooth' });
+  } catch (e) {
+    console.error("MangaDex search failed", e);
+  }
+}
+
+document.getElementById('search-btn').onclick = searchMangaDex;
+document.getElementById('search-input').onkeydown = (e) => {
+  if (e.key === 'Enter') searchMangaDex();
+};
+
 /* ── RENDER ──────────────────────────────────── */
 function render() {
   renderGrid('grid-local-library', allComics);
@@ -68,7 +104,7 @@ function renderGrid(gridId, list) {
     let href, meta, badgeClass, badgeLabel, cover;
 
     if (c.type === 'mangadex') {
-      href = `https://mangadex.org/title/${c.id}`;
+      href = `/mangadex/series/${c.id}`;
       meta = 'MangaDex';
       badgeClass = 'card__badge card__badge--series';
       badgeLabel = 'MangaDex';
@@ -108,7 +144,7 @@ function renderGrid(gridId, list) {
 
     return `
       <article class="card" role="listitem">
-        <a href="${href}" ${c.type === 'mangadex' ? 'target="_blank"' : ''} aria-label="${escHtml(c.title || c.name)}">
+        <a href="${href}" aria-label="${escHtml(c.title || c.name)}">
           <div class="card__cover">
             ${cover}
             <span class="${badgeClass}" aria-hidden="true">${badgeLabel}</span>

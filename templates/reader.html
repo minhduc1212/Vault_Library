@@ -76,11 +76,14 @@
 <div id="canvas">
   <div id="page-wrap">
     <img class="comic-page loading" id="main-img" src="" alt=""/>
-    <div id="zone-prev"></div>
-    <div id="zone-next"></div>
+    <div id="zone-ch-prev" title="Previous Chapter"></div>
+    <div id="zone-prev" title="Previous Page"></div>
+    <div id="zone-next" title="Next Page"></div>
+    <div id="zone-ch-next" title="Next Chapter"></div>
   </div>
   <div id="scroll-wrap"></div>
   <div id="epub-content" style="display:none;"></div>
+  <div id="pdf-content" style="display:none; width: 100%; height: 100%; overflow: auto;"></div>
 </div>
 
 <!-- BOTTOM HUD -->
@@ -95,9 +98,11 @@
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
     const dirIndex = {{ dir_index }};
     const readPath = "{{ read_path }}";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 </script>
 <script src="{{ url_for('static', filename='js/reader.js') }}"></script>
 {% endblock %}

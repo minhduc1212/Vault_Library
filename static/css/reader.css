@@ -153,11 +153,13 @@ body{background:var(--bg);color:var(--ink);font-family:'Syne',sans-serif;display
 .scroll-page.visible{opacity:1;transform:none;}
 
 /* ── CURSOR NAV ZONES ────────────────────────────────────── */
-#zone-prev,#zone-next{
-  position:absolute;top:0;bottom:0;width:30%;z-index:10;
+#zone-ch-prev, #zone-ch-next, #zone-prev, #zone-next {
+  position: absolute; top: 0; bottom: 0; z-index: 10;
 }
-#zone-prev{left:0;}
-#zone-next{right:0;}
+#zone-ch-prev { left: 0; width: 12%; }
+#zone-prev { left: 12%; width: 28%; }
+#zone-next { right: 12%; width: 28%; }
+#zone-ch-next { right: 0; width: 12%; }
 
 /* custom cursor */
 #cursor{
@@ -170,6 +172,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Syne',sans-serif;display
 }
 #cursor.prev::before{content:'←';}
 #cursor.next::before{content:'→';}
+#cursor.ch-prev::before{content:'«';}
+#cursor.ch-next::before{content:'»';}
 #cursor.default{opacity:0;}
 
 /* ── BOTTOM HUD ──────────────────────────────────────────── */

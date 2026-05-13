@@ -1,6 +1,8 @@
 'use strict';
 
 const isEpub = readPath.toLowerCase().endsWith('.epub');
+const isPdf = readPath.toLowerCase().endsWith('.pdf');
+const isMangadex = dirIndex === -1;
 const parts = readPath.split('/');
 const title = decodeURIComponent(parts[parts.length - 1]);
 
@@ -11,6 +13,15 @@ function setupHeader() {
   const hudTitleEl = document.getElementById('hud-title');
   const hudChapterEl = document.getElementById('hud-chapter');
   if (!hudTitleEl) return;
+
+  if (isMangadex) {
+    const mangaId = parts[0];
+    const chapterId = parts[1];
+    hudTitleEl.textContent = 'MangaDex'; // Will be updated after meta load
+    hudTitleEl.href = `/mangadex/series/${mangaId}`;
+    if (hudChapterEl) hudChapterEl.textContent = 'Loading...';
+    return;
+  }
 
   if (isChapter) {
     hudTitleEl.textContent = decodeURIComponent(seriesName);
@@ -118,16 +129,28 @@ function buildChList() {
         </div>
       `).join('');
     } else {
-      chListItems.innerHTML = chapters.map((ch, i) => `
-        <a href="/read/${dirIndex}/${ch.path}"
-           class="ch-item ${i === currentChapIndex ? 'active' : ''}">
-          <span class="ch-item-name">${escHtml(ch.name)}</span>
-          <span class="ch-item-pages">${ch.pages} p</span>
-        </a>
-      `).join('');
+      chListItems.innerHTML = chapters.map((ch, i) => {
+        let href;
+        if (isMangadex) {
+          href = `/mangadex/read/${parts[0]}/${ch.id}`;
+        } else {
+          href = `/read/${dirIndex}/${ch.path}`;
+        }
+        return `
+          <a href="${href}"
+             class="ch-item ${i === currentChapIndex ? 'active' : ''}">
+            <span class="ch-item-name">${escHtml(ch.name)}</span>
+            <span class="ch-item-pages">${ch.pages} p</span>
+          </a>`;
+      }).join('');
     }
   }
 }
+
+let pdfDoc = null;
+let pdfPageNum = 1;
+let pdfIsRendering = false;
+let pdfPageNumPending = null;
 
 // ── INIT ────────────────────────────────────────────────────
 async function init() {
@@ -135,6 +158,44 @@ async function init() {
   if (isEpub) {
     return initEpub();
   }
+  if (isPdf) {
+    return initPdf();
+  }
+
+  if (isMangadex) {
+    const mangaId = parts[0];
+    const chapterId = parts[1];
+    try {
+      // Load manga meta
+      const metaRes = await fetch(`/api/mangadex/manga/${mangaId}`);
+      const meta = await metaRes.json();
+      const hudTitleEl = document.getElementById('hud-title');
+      if (hudTitleEl) hudTitleEl.textContent = meta.title;
+
+      // Load pages
+      const res = await fetch(`/api/mangadex/pages/${chapterId}`);
+      pages = await res.json();
+      
+      // Load chapters
+      const chRes = await fetch(`/api/mangadex/chapters/${mangaId}`);
+      chapters = await chRes.json();
+      currentChapIndex = chapters.findIndex(ch => ch.id === chapterId);
+      
+      const hudChapterEl = document.getElementById('hud-chapter');
+      if (hudChapterEl && currentChapIndex >= 0) {
+        hudChapterEl.textContent = chapters[currentChapIndex].name;
+      }
+
+      buildChList();
+      goTo(0);
+      preload(1);
+      setMode(mode);
+    } catch (e) {
+      console.error("MangaDex init failed", e);
+    }
+    return;
+  }
+
   try {
     const res = await fetch(`/api/pages/${dirIndex}/${readPath}`);
     pages = await res.json();
@@ -164,6 +225,117 @@ async function init() {
     setMode(mode);
   } catch (e) {
     console.error("Failed to initialize reader", e);
+  }
+}
+
+async function initPdf() {
+  const pdfContent = document.getElementById('pdf-content');
+  const pageWrap = document.getElementById('page-wrap');
+  const scrollWrap = document.getElementById('scroll-wrap');
+  const bottomHud = document.getElementById('bottom-hud');
+  const counter = document.getElementById('hud-counter');
+  const canvas = document.getElementById('canvas');
+
+  if (pdfContent) {
+    pdfContent.style.display = 'block';
+    pdfContent.innerHTML = '<div class="loading">Loading PDF...</div>';
+  }
+  if (pageWrap) pageWrap.style.display = 'none';
+  if (scrollWrap) scrollWrap.style.display = 'none';
+  if (bottomHud) bottomHud.style.display = 'none';
+  if (counter) counter.style.display = 'flex';
+  
+  if (canvas) {
+    canvas.style.cursor = 'default';
+  }
+
+  const pdfUrl = `/file/${dirIndex}/${readPath.split('/').map(encodeURIComponent).join('/')}`;
+  
+  try {
+    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    pdfDoc = await loadingTask.promise;
+    console.log('PDF loaded');
+    
+    if (pdfContent) pdfContent.innerHTML = '';
+    
+    // Set initial page from cookie or 1
+    pdfPageNum = parseInt(getCookie(`pdf_page_${readPath}`)) || 1;
+    if (pdfPageNum > pdfDoc.numPages) pdfPageNum = 1;
+
+    setMode(mode);
+    renderPdfPage(pdfPageNum);
+    updateHud();
+  } catch (e) {
+    console.error("Error loading PDF:", e);
+    if (pdfContent) pdfContent.innerHTML = `<div class="error">Failed to load PDF: ${e.message}</div>`;
+  }
+}
+
+function renderPdfPage(num) {
+  if (!pdfDoc) return;
+  pdfIsRendering = true;
+  
+  const pdfContent = document.getElementById('pdf-content');
+  if (!pdfContent) return;
+
+  pdfDoc.getPage(num).then((page) => {
+    const viewport = page.getViewport({ scale: 1.5 });
+    
+    // Reuse or create canvas
+    let canvas = document.getElementById('pdf-canvas');
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'pdf-canvas';
+        canvas.style.display = 'block';
+        canvas.style.margin = '20px auto';
+        canvas.style.maxWidth = '100%';
+        pdfContent.appendChild(canvas);
+        
+        // Add click zones to canvas container or handle it globally
+        canvas.addEventListener('click', (e) => {
+            const x = e.clientX;
+            const width = window.innerWidth;
+            if (mode === 'page') {
+                if (x < width * 0.4) {
+                    prev();
+                } else if (x > width * 0.6) {
+                    next();
+                } else {
+                    showHud();
+                }
+            } else {
+                showHud();
+            }
+        });
+    }
+
+    const context = canvas.getContext('2d');
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport
+    };
+    
+    const renderTask = page.render(renderContext);
+    renderTask.promise.then(() => {
+      pdfIsRendering = false;
+      if (pdfPageNumPending !== null) {
+        renderPdfPage(pdfPageNumPending);
+        pdfPageNumPending = null;
+      }
+      setCookie(`pdf_page_${readPath}`, num, 365);
+      updateHud();
+    });
+  });
+}
+
+function queueRenderPage(num) {
+  if (pdfIsRendering) {
+    pdfPageNumPending = num;
+  } else {
+    renderPdfPage(num);
   }
 }
 
@@ -303,9 +475,13 @@ async function initEpub() {
         const width = view.window.innerWidth;
         
         if (mode === 'page') {
-            if (x < width * 0.3) {
+            if (x < width * 0.12) {
+                prevChapter();
+            } else if (x < width * 0.4) {
                 rendition.prev();
-            } else if (x > width * 0.7) {
+            } else if (x > width * 0.88) {
+                nextChapter();
+            } else if (x > width * 0.6) {
                 rendition.next();
             } else {
                 showHud();
@@ -405,6 +581,28 @@ function changeFontSize(delta) {
     applyEpubStyles();
 }
 
+function renderPdfPageToContainer(num, container) {
+    pdfDoc.getPage(num).then((page) => {
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        canvas.className = 'pdf-page-scroll';
+        canvas.style.display = 'block';
+        canvas.style.margin = '20px auto';
+        canvas.style.maxWidth = '100%';
+        container.appendChild(canvas);
+
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+            canvasContext: context,
+            viewport: viewport
+        };
+        page.render(renderContext);
+    });
+}
+
 // ── NAVIGATION ──────────────────────────────────────────────
 function goTo(idx) {
   if (idx < 0 || idx >= pages.length) return;
@@ -438,6 +636,13 @@ function next() {
     if (rendition) rendition.next();
     return;
   }
+  if (isPdf) {
+      if (pdfDoc && pdfPageNum < pdfDoc.numPages) {
+          pdfPageNum++;
+          queueRenderPage(pdfPageNum);
+      }
+      return;
+  }
   if (current < pages.length - 1) { goTo(current + 1); }
   else if (currentChapIndex >= 0 && currentChapIndex < chapters.length - 1) { navigateToChapter(currentChapIndex + 1); }
 }
@@ -447,13 +652,70 @@ function prev() {
     if (rendition) rendition.prev();
     return;
   }
+  if (isPdf) {
+      if (pdfPageNum > 1) {
+          pdfPageNum--;
+          queueRenderPage(pdfPageNum);
+      }
+      return;
+  }
   if (current > 0) { goTo(current - 1); }
   else if (currentChapIndex > 0) { navigateToChapter(currentChapIndex - 1); }
 }
 
+function nextChapter() {
+  if (isEpub) {
+    if (book && book.navigation && chapters) {
+      const flatToc = [];
+      const flatten = (items) => {
+        items.forEach(i => {
+          flatToc.push(i);
+          if (i.subitems) flatten(i.subitems);
+        });
+      };
+      flatten(chapters);
+      const nextIdx = currentEpubIndex + 1;
+      if (nextIdx < flatToc.length) rendition.display(flatToc[nextIdx].href);
+    }
+    return;
+  }
+  if (isPdf) return;
+  if (currentChapIndex >= 0 && currentChapIndex < chapters.length - 1) {
+    navigateToChapter(currentChapIndex + 1);
+  }
+}
+
+function prevChapter() {
+  if (isEpub) {
+    if (book && book.navigation && chapters) {
+      const flatToc = [];
+      const flatten = (items) => {
+        items.forEach(i => {
+          flatToc.push(i);
+          if (i.subitems) flatten(i.subitems);
+        });
+      };
+      flatten(chapters);
+      const prevIdx = currentEpubIndex - 1;
+      if (prevIdx >= 0) rendition.display(flatToc[prevIdx].href);
+    }
+    return;
+  }
+  if (isPdf) return;
+  if (currentChapIndex > 0) {
+    navigateToChapter(currentChapIndex - 1);
+  }
+}
+
 function navigateToChapter(idx) {
   const ch = chapters[idx];
-  if (ch) window.location = `/read/${dirIndex}/${ch.path}`;
+  if (ch) {
+    if (isMangadex) {
+      window.location = `/mangadex/read/${parts[0]}/${ch.id}`;
+    } else {
+      window.location = `/read/${dirIndex}/${ch.path}`;
+    }
+  }
 }
 
 // ── HUD ─────────────────────────────────────────────────────
@@ -492,6 +754,20 @@ function updateHud() {
     showHud();
     return;
   }
+
+  if (isPdf) {
+      const counter = document.getElementById('hud-counter');
+      if (counter && pdfDoc) {
+          counter.textContent = `${pdfPageNum} / ${pdfDoc.numPages}`;
+      }
+      if (hudChapterEl) hudChapterEl.textContent = title;
+      
+      const pct = pdfDoc ? (pdfPageNum / pdfDoc.numPages) * 100 : 0;
+      document.documentElement.style.setProperty('--progress', pct + '%');
+      showHud();
+      return;
+  }
+
   const counter = document.getElementById('hud-counter');
   if (counter) counter.textContent = `${current + 1} / ${pages.length}`;
   if (hudChapterEl) hudChapterEl.textContent = title;
@@ -611,6 +887,32 @@ function setMode(m) {
       return;
   }
 
+  if (isPdf) {
+      const btnPage = document.getElementById('btn-page');
+      const btnScroll = document.getElementById('btn-scroll');
+      if (btnPage) btnPage.classList.toggle('active', m === 'page');
+      if (btnScroll) btnScroll.classList.toggle('active', m === 'scroll');
+      
+      const pdfContent = document.getElementById('pdf-content');
+      if (pdfContent) {
+          if (m === 'scroll') {
+              pdfContent.style.overflowY = 'auto';
+              if (pdfDoc && pdfContent.children.length <= 1) {
+                  for (let i = 1; i <= pdfDoc.numPages; i++) {
+                      if (i === pdfPageNum) continue; 
+                      renderPdfPageToContainer(i, pdfContent);
+                  }
+              }
+          } else {
+              pdfContent.style.overflowY = 'hidden';
+              const canvas = document.getElementById('pdf-canvas');
+              pdfContent.innerHTML = '';
+              if (canvas) pdfContent.appendChild(canvas);
+          }
+      }
+      return;
+  }
+
   const pageWrap   = document.getElementById('page-wrap');
   const scrollWrap = document.getElementById('scroll-wrap');
   const canvas     = document.getElementById('canvas');
@@ -704,13 +1006,30 @@ function onScrollChapter() {
   }
 });
 
+const zoneChPrev = document.getElementById('zone-ch-prev');
 const zonePrev = document.getElementById('zone-prev');
 const zoneNext = document.getElementById('zone-next');
+const zoneChNext = document.getElementById('zone-ch-next');
+
+if (zoneChPrev) zoneChPrev.onclick = prevChapter;
 if (zonePrev) zonePrev.onclick = prev;
 if (zoneNext) zoneNext.onclick = next;
+if (zoneChNext) zoneChNext.onclick = nextChapter;
 
 document.addEventListener('keydown', e => {
-  if (isEpub) return; // EPUB has its own listeners
+  if (isEpub) return;
+
+  if (isPdf) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { 
+      e.preventDefault(); 
+      next(); 
+    }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  { 
+      e.preventDefault(); 
+      prev(); 
+    }
+    return;
+  }
 
   if (mode === 'scroll') {
     const canvas = document.getElementById('canvas');
@@ -753,10 +1072,15 @@ document.addEventListener('mousemove', e => {
   cursor.style.left = e.clientX + 'px';
   cursor.style.top  = e.clientY + 'px';
   const el = document.elementFromPoint(e.clientX, e.clientY);
-  if (el === zonePrev || (zonePrev && zonePrev.contains(el))) {
+  
+  if (el === zoneChPrev) {
+    cursor.className = 'ch-prev';
+  } else if (el === zonePrev) {
     cursor.className = 'prev';
-  } else if (el === zoneNext || (zoneNext && zoneNext.contains(el))) {
+  } else if (el === zoneNext) {
     cursor.className = 'next';
+  } else if (el === zoneChNext) {
+    cursor.className = 'ch-next';
   } else {
     cursor.className = 'default';
   }

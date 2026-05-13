@@ -28,6 +28,7 @@ CONFIG_FILE = Path(__file__).parent / ".comics_config.json"
 DB_PATH = Path(__file__).parent / "comics.db"
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".bmp"}
+BASE_URL = "https://api.mangadex.org"
 
 db = Database(str(DB_PATH))
 db.connect()
@@ -41,7 +42,7 @@ def _add_comics_from_dir(root: Path) -> int:
         return 0
     count = 0
     logger.info(f"Scanning directory for comics: {root}")
-    for child in sorted(p for p in root.iterdir() if not p.name.startswith('.') and (p.is_dir() or p.suffix.lower() == '.epub')):
+    for child in sorted(p for p in root.iterdir() if not p.name.startswith('.') and (p.is_dir() or p.suffix.lower() in {'.epub', '.pdf'})):
         meta = scan_entry(child)
         if meta is None:
             continue
@@ -99,33 +100,43 @@ def is_image(p: Path) -> bool:
 
 def scan_entry(path: Path) -> dict | None:
     """Return metadata for one comic entry (folder or epub file)."""
-    if path.is_file() and path.suffix.lower() == '.epub':
-        cover_path = ""
-        try:
-            with zipfile.ZipFile(path, 'r') as z:
-                # 1. Try standard names in Zip
-                for name in z.namelist():
-                    name_low = name.lower()
-                    if "cover" in name_low and any(name_low.endswith(ext) for ext in IMAGE_EXTS):
-                        cover_path = name
-                        break
-                
-                # 2. Just take the first image if it's in a likely folder
-                if not cover_path:
+    if path.is_file():
+        ext = path.suffix.lower()
+        if ext == '.epub':
+            cover_path = ""
+            try:
+                with zipfile.ZipFile(path, 'r') as z:
+                    # 1. Try standard names in Zip
                     for name in z.namelist():
-                        if any(name.lower().endswith(ext) for ext in IMAGE_EXTS):
+                        name_low = name.lower()
+                        if "cover" in name_low and any(name_low.endswith(ext) for ext in IMAGE_EXTS):
                             cover_path = name
                             break
-        except Exception as e:
-            logger.error(f"Error scanning EPUB {path}: {e}")
+                    
+                    # 2. Just take the first image if it's in a likely folder
+                    if not cover_path:
+                        for name in z.namelist():
+                            if any(name.lower().endswith(ext) for ext in IMAGE_EXTS):
+                                cover_path = name
+                                break
+            except Exception as e:
+                logger.error(f"Error scanning EPUB {path}: {e}")
 
-        return {
-            "name": path.stem,
-            "type": "epub",
-            "pages": 0,
-            "chapters": 0,
-            "cover_path": cover_path,
-        }
+            return {
+                "name": path.stem,
+                "type": "epub",
+                "pages": 0,
+                "chapters": 0,
+                "cover_path": cover_path,
+            }
+        elif ext == '.pdf':
+            return {
+                "name": path.stem,
+                "type": "pdf",
+                "pages": 0,
+                "chapters": 0,
+                "cover_path": "", # pdf.js can handle rendering first page as cover on client side or we can use a placeholder
+            }
 
     if not path.is_dir():
         return None
@@ -603,6 +614,141 @@ def api_tunnel_qr():
     return Response(buf.getvalue(), mimetype="image/png")
 
 
+@app.route("/api/mangadex/search")
+def api_mangadex_search():
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify([])
+    
+    url = f"{BASE_URL}/manga"
+    params = {
+        "title": query,
+        "limit": 20,
+        "includes[]": ["author", "cover_art"],
+        "contentRating[]": ["safe", "suggestive", "erotica"]
+    }
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        results = []
+        for manga in data.get("data", []):
+            manga_id = manga["id"]
+            attributes = manga.get("attributes", {})
+            title_obj = attributes.get("title", {})
+            title = title_obj.get("en") or next(iter(title_obj.values())) if title_obj else "Unknown"
+            
+            cover_file = None
+            for rel in manga.get("relationships", []):
+                if rel["type"] == "cover_art" and "attributes" in rel:
+                    cover_file = rel["attributes"].get("fileName")
+                    break
+            
+            cover_url = f"https://uploads.mangadex.org/covers/{manga_id}/{cover_file}.512.jpg" if cover_file else None
+            
+            results.append({
+                "id": manga_id,
+                "title": title,
+                "cover": cover_url,
+                "type": "mangadex"
+            })
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error searching MangaDex: {e}")
+        return jsonify([])
+
+@app.route("/api/mangadex/manga/<manga_id>")
+def api_mangadex_manga(manga_id):
+    url = f"{BASE_URL}/manga/{manga_id}"
+    params = {
+        "includes[]": ["author", "cover_art"]
+    }
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        manga = data.get("data", {})
+        
+        attributes = manga.get("attributes", {})
+        title_obj = attributes.get("title", {})
+        title = title_obj.get("en") or next(iter(title_obj.values())) if title_obj else "Unknown"
+        description = attributes.get("description", {}).get("en", "")
+        
+        cover_file = None
+        for rel in manga.get("relationships", []):
+            if rel["type"] == "cover_art" and "attributes" in rel:
+                cover_file = rel["attributes"].get("fileName")
+                break
+        
+        cover_url = f"https://uploads.mangadex.org/covers/{manga_id}/{cover_file}.512.jpg" if cover_file else None
+        
+        return jsonify({
+            "id": manga_id,
+            "title": title,
+            "description": description,
+            "cover": cover_url,
+            "type": "mangadex"
+        })
+    except Exception as e:
+        logger.error(f"Error fetching MangaDex manga: {e}")
+        abort(404)
+
+@app.route("/api/mangadex/chapters/<manga_id>")
+def api_mangadex_chapters(manga_id):
+    url = f"{BASE_URL}/manga/{manga_id}/feed"
+    params = {
+        "translatedLanguage[]": ["en"],
+        "limit": 500,
+        "order[chapter]": "asc",
+        "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
+    }
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        chapters = []
+        for ch in data.get("data", []):
+            attrs = ch["attributes"]
+            chapters.append({
+                "id": ch["id"],
+                "name": f"Chapter {attrs.get('chapter', 'N/A')}: {attrs.get('title') or ''}".strip(": "),
+                "chapter": attrs.get("chapter"),
+                "pages": attrs.get("pages"),
+                "type": "mangadex"
+            })
+        return jsonify(chapters)
+    except Exception as e:
+        logger.error(f"Error fetching MangaDex chapters: {e}")
+        return jsonify([])
+
+@app.route("/api/mangadex/pages/<chapter_id>")
+def api_mangadex_pages(chapter_id):
+    url = f"{BASE_URL}/at-home/server/{chapter_id}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        
+        base_url = data["baseUrl"]
+        ch_hash = data["chapter"]["hash"]
+        files = data["chapter"]["data"]
+        
+        image_urls = [f"{base_url}/data/{ch_hash}/{f}" for f in files]
+        return jsonify(image_urls)
+    except Exception as e:
+        logger.error(f"Error fetching MangaDex pages: {e}")
+        return jsonify([])
+
+@app.route("/mangadex/series/<manga_id>")
+def mangadex_series(manga_id):
+    return render_template("mangadex_series.html", manga_id=manga_id)
+
+@app.route("/mangadex/read/<manga_id>/<chapter_id>")
+def mangadex_reader(manga_id, chapter_id):
+    return render_template("reader.html", dir_index=-1, read_path=f"{manga_id}/{chapter_id}")
+
 @app.route("/api/mangadex/popular")
 def get_popular_mangadex():
     url = "https://api.mangadex.org/manga"
@@ -650,11 +796,9 @@ if __name__ == "__main__":
     logger.info(f"[books]  Comics dirs : {[str(d) for d in COMICS_DIRS]}")
     logger.info(f"[web]  Open        : http://localhost:5000")
     
-    # Try to start Cloudflare tunnel safely
     if os.environ.get("DISABLE_TUNNEL") != "1":
         try:
             logger.info("Initializing Cloudflare tunnel...")
-            # If you have cloudflared.exe in the project folder, this is much more stable on Windows
             run_with_cloudflared(app)
         except Exception as e:
             logger.error(f"Cloudflare tunnel failed to start: {e}")
